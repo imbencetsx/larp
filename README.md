@@ -1,0 +1,94 @@
+# LARP
+
+A programming learning app built on the existing T3 Stack: Next.js App Router, TypeScript, tRPC, Drizzle, SQLite/libSQL, Clerk, Tailwind CSS v4, and coss/Base UI.
+
+## Run locally
+
+```sh
+bun install
+# For a fresh checkout only; preserve your existing .env if you have one.
+cp .env.example .env
+bun run db:migrate
+bun run db:seed
+bun run dev
+```
+
+Open [localhost:3000](http://localhost:3000). The workspace is at `/`; the introduction is at `/welcome`.
+
+The default `DATABASE_URL` is `file:./db.sqlite`. Migrations are checked in under `drizzle/`. Seeding is repeatable and never adds artificial user progress. The app also ensures course and lesson catalog records exist on the first learning request, after migrations have run.
+
+## Clerk authentication
+
+Create a Clerk application and set these in `.env`:
+
+```dotenv
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="your Clerk publishable key"
+CLERK_SECRET_KEY="your Clerk secret key"
+```
+
+Restart the dev server after adding keys. The actual Clerk sign-up, sign-in, account, and sign-out UI will then be available. Configure any desired social providers in Clerk itself. See the [official Clerk App Router quickstart](https://clerk.com/docs/nextjs/getting-started/quickstart).
+
+Without both keys, LARP works in explicitly labeled **guest mode**. A random, HTTP-only session cookie links a browser to its database-backed drafts, attempts, progress, and preferences. It is not a simulated Clerk login. Clearing or losing that cookie loses access to the guest session; signing in merges its progress into the account without counting completed lessons twice. A signed-in user's data is scoped to the Clerk user ID verified on the server.
+
+Clerk keys were not supplied during implementation. Guest learning and account authorization boundaries are tested; real Clerk sign-up/sign-in requires your configured application.
+
+## What is included
+
+- Five learning paths: HTML, CSS, JavaScript, TypeScript, and Next.js.
+- Ten complete lessons per path, fifty in total. Each includes a worked example, copyable snippet, guided explanation, starter code, a project-based exercise, progressive hints, server-side checks, and a recap. Each path builds toward a small capstone.
+- A dashboard, course overviews, lesson workspace, freeform playground, garden, progress history, and settings.
+- Viewport-sized coding workspaces: tasks, code, and output sit side by side on desktop. Phones keep code and preview stacked together; instructions and hints open in a dialog. Individual panes scroll, so long code never pushes the preview below the page.
+- Saved lesson drafts, exercise attempts, completion dates, daily intentions, and preferences. Unique completion is recorded only once per lesson.
+- Five distinct course flowers: HTML daisy, CSS lavender, JavaScript sunflower, TypeScript bluebell, and Next.js rose. Each has 12 pixel-art stages. Server-verified exercise checks save the best growth per lesson; only completing every lesson in a course unlocks its full bloom. All five plants grow together in the garden, with an interactive growth-stage guide. Failed attempts and resets never remove earned growth.
+- Tiny5 for the wordmark, headings, and numbers; Pixelify Sans for interface text; Geist Mono for code. Five original pixel-art greenhouse scenes give each language path its own setting.
+- Consistent coss component surfaces with the default radius scale, borders, shadows, focus rings, and control variants. Pixel typography is mapped through coss font tokens; page CSS handles layout and the code canvas.
+- Dark surfaces, top-bar navigation, keyboard shortcuts, reduced-motion support, and coss cards, menus, tooltips, form fields, dialogs, tabs, selects, inputs, buttons, badges, skeletons, and progress indicators.
+
+## Exercise environments
+
+- **HTML/CSS:** live previews in a sandboxed iframe. A restrictive Content Security Policy blocks scripts, external assets, and forms. HTML structure and CSS declarations are checked against each lesson’s requirements.
+- **JavaScript:** server-side QuickJS/WASM with a 150ms interrupt deadline, an 8 MiB guest heap limit, a bounded stack, and capped console output. Learner JavaScript has no Node, network, or filesystem APIs. The final HTML project lesson uses a small controlled DOM fixture and renders generated cards in the sandboxed preview.
+- **TypeScript:** real compiler diagnostics before execution. The compiler can read the exercise and TypeScript's standard library, not arbitrary project files. Valid code is compiled and run in QuickJS.
+- **Next.js:** an explicitly labeled educational component simulator. It supports JSX, a minimal `useState` model, rendered snapshots, and explicit simulated button clicks. It teaches file-based routing and server/client boundaries; it does **not** start a Next.js server, fetch data, run arbitrary dependencies, or provide a complete React runtime.
+
+Source input is limited to 12,000 characters. Exercises and the playground run through typed tRPC procedures. Only successful server validation marks a lesson complete. Atomic database batches prevent simultaneous submissions from duplicating completion. Replaying or resetting an exercise never removes earned completion.
+
+Playground drafts are stored on the current device; lesson drafts and learning progress are in the database.
+
+## Add curriculum
+
+Author a lesson with the `Lesson` type and its matching validation checks in `src/content/continuation.ts`. Stable lesson IDs use the track name and sequence number. Catalog entries are synchronized automatically on a learning request; run `bun run db:seed` to update them explicitly.
+
+## Verification
+
+```sh
+bun run test          # curriculum, sandbox, persistence, growth, and authorization checks
+bun run typecheck
+bun run lint
+bun run build
+```
+
+End-to-end tests run in a separate browser context against a running development server:
+
+```sh
+bunx playwright install chromium
+bun run dev          # in another terminal
+bun run test:e2e
+```
+
+The browser suite covers curriculum completion, completion deduplication, reload persistence, saved drafts, clipboard copying, hints, settings, playground output, infinite-loop interruption, Next.js state simulation, mobile navigation, search, and overflow checks.
+
+To build without sharing Next's output directory with a running dev server:
+
+```sh
+LARP_BUILD_DIR=.next-production bun run build
+LARP_BUILD_DIR=.next-production bun run start
+```
+
+The strict ESLint configuration applies to application code. Imported coss registry files and their supporting generated hooks/composer helpers are excluded from linting but remain included in TypeScript checks.
+
+## Deployment
+
+Use persistent disk for a local SQLite deployment. For serverless hosting, configure a persistent hosted libSQL/Turso database using `DATABASE_URL="libsql://..."` and `DATABASE_AUTH_TOKEN`. The Drizzle configuration selects the Turso dialect for a libSQL URL. Run migrations and the seed command against that target before serving traffic. Local SQLite files are not durable on ephemeral serverless filesystems.
+
+Set Clerk production keys and the production domain in Clerk before enabling account authentication on a deployed site. Run the application with the Node.js runtime; exercise validation depends on WASM and the TypeScript compiler.
