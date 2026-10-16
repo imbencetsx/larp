@@ -11,7 +11,8 @@ import {
   Transaction,
   countColumn,
 } from "@codemirror/state";
-import { EditorView, highlightWhitespace, keymap } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
+import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 import {
   indentLess,
   indentMore,
@@ -97,14 +98,7 @@ const theme = EditorView.theme(
       backgroundColor: "var(--accent)",
       color: "var(--accent-foreground)",
     },
-    ".cm-highlightSpace:before": { color: "var(--border)" },
-    ".cm-highlightTab": { backgroundImage: "none", position: "relative" },
-    ".cm-highlightTab:after": {
-      content: "'→'",
-      position: "absolute",
-      insetInlineStart: "0",
-      color: "var(--muted-foreground)",
-    },
+    ".cm-indent-markers::before": { left: "12px" },
   },
   { dark: true },
 );
@@ -187,7 +181,11 @@ export function SourceEditor(props: {
           language,
           theme,
           syntaxHighlighting(colors),
-          highlightWhitespace(),
+          indentationMarkers({
+            highlightActiveBlock: false,
+            markerType: "fullScope",
+            colors: { light: "var(--border)", dark: "var(--border)" },
+          }),
           EditorState.tabSize.of(2),
           indentUnit.of("  "),
           editable.current.of([

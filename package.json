@@ -37,6 +37,7 @@
     "@daypicker/react": "^10.0.2",
     "@lezer/highlight": "^1.2.5",
     "@libsql/client": "^0.14.0",
+    "@replit/codemirror-indentation-markers": "^6.5.3",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "^5.69.0",
     "@trpc/client": "^11.0.0",
