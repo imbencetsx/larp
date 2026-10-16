@@ -9,8 +9,19 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { useLearning } from "./learning-provider";
 import { GardenBed } from "./garden-bed";
 import { getCourseGrowth } from "~/lib/garden";
-import { tracks, lessons, trackLessons, type Track } from "~/content/curriculum";
-export function TrackCard({ track }: { track: Track }) {
+import {
+  tracks,
+  lessons,
+  trackLessons,
+  type Track,
+} from "~/content/curriculum";
+export function TrackCard({
+  track,
+  showIcons = true,
+}: {
+  track: Track;
+  showIcons?: boolean;
+}) {
   const { data } = useLearning();
   const courseLessons = trackLessons(track.id);
   const done = courseLessons.filter((lesson) =>
@@ -22,8 +33,12 @@ export function TrackCard({ track }: { track: Track }) {
       className={`track-card ${track.color} scene-${track.id}`}
     >
       <CardHeader className="track-card-top">
-        <span className="track-icon">{track.short}</span>
-        <ArrowUpRight aria-hidden="true" />
+        {showIcons && (
+          <>
+            <span className="track-icon">{track.short}</span>
+            <ArrowUpRight aria-hidden="true" />
+          </>
+        )}
       </CardHeader>
       <CardPanel className="track-card-body">
         <h3>{track.name}</h3>
@@ -62,19 +77,37 @@ export function Dashboard() {
             {name && name !== "Learner" ? `Hey, ${name}.` : "Let’s build."}
           </h1>
         </div>
-        <Badge variant="outline">{completed.length} / {lessons.length} lessons</Badge>
+        <Badge variant="outline">
+          {completed.length} / {lessons.length} lessons
+        </Badge>
       </section>
       <Card className="resume-card">
         <CardPanel>
           <div>
             <span className="eyebrow">
-              {next ? `${next.track.toUpperCase()} / ${String(next.number).padStart(2, "0")}` : "ALL PATHS COMPLETE"}
+              {next
+                ? `${next.track.toUpperCase()} / ${String(next.number).padStart(2, "0")}`
+                : "ALL PATHS COMPLETE"}
             </span>
             <h2>{next?.title ?? "Your garden is in full bloom."}</h2>
-            <p>{next ? `${next.duration} min · Hands-on lesson` : "Every course flower is ready to visit."}</p>
+            <p>
+              {next
+                ? `${next.duration} min · Hands-on lesson`
+                : "Every course flower is ready to visit."}
+            </p>
           </div>
-          <Button render={<Link href={next ? `/learn/${next.track}/${next.number}` : "/garden"} />}>
-            {next ? completed.length ? "Continue learning" : "Start lesson" : "Visit your garden"}
+          <Button
+            render={
+              <Link
+                href={next ? `/learn/${next.track}/${next.number}` : "/garden"}
+              />
+            }
+          >
+            {next
+              ? completed.length
+                ? "Continue learning"
+                : "Start lesson"
+              : "Visit your garden"}
             <ArrowRight aria-hidden="true" />
           </Button>
         </CardPanel>
@@ -98,7 +131,9 @@ export function Dashboard() {
             ? tracks.map((t) => (
                 <Skeleton key={t.id} className="track-skeleton" />
               ))
-            : tracks.map((t) => <TrackCard key={t.id} track={t} />)}
+            : tracks.map((t) => (
+                <TrackCard key={t.id} track={t} showIcons={false} />
+              ))}
         </nav>
       </section>
       <Card className="garden-strip">

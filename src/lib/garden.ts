@@ -45,7 +45,9 @@ export function getCourseGrowth(
     ? fullBloomStage
     : Math.min(
         fullBloomStage - 1,
-        Math.floor((percent / 100) * fullBloomStage),
+        Math.ceil(
+          (score / Math.max(1, course.length * 100)) * (fullBloomStage - 1),
+        ),
       );
   return {
     completed,

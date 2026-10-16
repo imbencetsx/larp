@@ -3,24 +3,21 @@ import { ArrowRight, BookOpen, Code2, Sprout } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardPanel } from "~/components/ui/card";
 import { PixelPlant } from "~/components/larp/pixel-art";
+import { Topbar } from "~/components/larp/topbar";
 export const metadata = { title: "Learn. Build. Repeat." };
 export default function Page() {
   return (
     <div className="welcome-page">
-      <nav className="welcome-nav">
-        <Link href="/" className="brand">
-          <span className="wordmark">LARP</span>
-          <span className="logo-pixel" />
-        </Link>
-        <div>
+      <Topbar>
+        <nav className="topbar-actions" aria-label="Welcome navigation">
           <Button variant="ghost" render={<Link href="/sign-in" />}>
             Sign in
           </Button>
           <Button render={<Link href="/" />}>
             Start learning <ArrowRight aria-hidden="true" />
           </Button>
-        </div>
-      </nav>
+        </nav>
+      </Topbar>
       <main className="welcome-main">
         <section className="welcome-hero">
           <div>

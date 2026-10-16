@@ -2,7 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { eq } from "drizzle-orm";
 import { rmSync } from "node:fs";
-import { lessons } from "~/content/curriculum";
+import { lessons, getLesson, trackLessons, tracks } from "~/content/curriculum";
+import { readFiles, saveFiles } from "~/lib/workspace";
+import { exportProject } from "~/server/services/compiler";
 import {
   validateExercise,
   runPlayground,
@@ -10,7 +12,7 @@ import {
 } from "~/server/services/validate";
 import { ensureLearner, recordAttempt } from "~/server/services/progress";
 import { db, client } from "~/server/db";
-import { users, progress } from "~/server/db/schema";
+import { users, progress, attempts } from "~/server/db/schema";
 import { createCaller } from "~/server/api/root";
 import { fullBloomStage, getCourseGrowth } from "~/lib/garden";
 beforeAll(async () => {
@@ -22,6 +24,22 @@ afterAll(() => {
     rmSync(`.larp-test.sqlite${suffix}`, { force: true });
 });
 describe("authored curriculum", () => {
+  it("has sequential, complete paths with advanced projects and quiz checkpoints", () => {
+    expect(new Set(lessons.map((lesson) => lesson.id)).size).toBe(
+      lessons.length,
+    );
+    for (const track of tracks) {
+      const course = trackLessons(track.id);
+      expect(course).toHaveLength(32);
+      expect(course.map((lesson) => lesson.number)).toEqual(
+        Array.from({ length: 32 }, (_, i) => i + 1),
+      );
+      expect(course.filter((lesson) => lesson.kind === "quiz")).toHaveLength(4);
+      expect(
+        course.slice(-2).every((lesson) => lesson.kind === "project"),
+      ).toBe(true);
+    }
+  });
   for (const lesson of lessons) {
     it(`${lesson.id}: accepts its complete solution`, async () => {
       const result = await validateExercise(lesson.id, lesson.solution);
@@ -61,6 +79,121 @@ describe("authored curriculum", () => {
     );
     expect(r.passed).toBe(false);
     expect(r.output.join(" ")).toContain("not assignable");
+  });
+});
+
+describe("quizzes and multi-file projects", () => {
+  it("validates quiz answers on the server and explains failed answers", async () => {
+    const lesson = getLesson("javascript-15")!;
+    const wrong = lesson.quiz!.map(
+      (question) => (question.answer + 1) % question.choices.length,
+    );
+    const failed = await validateExercise(lesson.id, JSON.stringify(wrong));
+    expect(failed.passed).toBe(false);
+    expect(failed.output).toHaveLength(4);
+    expect((await validateExercise(lesson.id, "[0]")).error).toContain(
+      "every question",
+    );
+    expect((await validateExercise(lesson.id, lesson.solution)).passed).toBe(
+      true,
+    );
+  });
+  it("retains companion HTML and CSS while grading the entry stylesheet", async () => {
+    const lesson = getLesson("css-13")!;
+    const files = readFiles(lesson, lesson.solution);
+    files["index.html"] =
+      '<main><div class="gallery"><article class="plant">Custom plant</article></div></main>';
+    const saved = saveFiles(files);
+    expect(readFiles(lesson, saved)).toEqual(files);
+    expect((await validateExercise(lesson.id, saved)).passed).toBe(true);
+    expect(exportProject(lesson.id, saved)["index.html"]).toContain(
+      'href="workshop.css"',
+    );
+  });
+  it("checks imported project modules instead of using fixed helper solutions", async () => {
+    const lesson = getLesson("nextjs-31")!;
+    const files = readFiles(lesson, lesson.solution);
+    expect((await validateExercise(lesson.id, saveFiles(files))).passed).toBe(
+      true,
+    );
+    files["lib/tasks.ts"] =
+      "export type Task={id:number;title:string;done:boolean};export function toggle(tasks:Task[],id:number){return tasks;}export function remaining(tasks:Task[]){return tasks.length;}";
+    expect((await validateExercise(lesson.id, saveFiles(files))).passed).toBe(
+      false,
+    );
+  });
+  it("exports runnable TypeScript browser projects with compiled JavaScript", () => {
+    const lesson = getLesson("typescript-32")!;
+    const files = exportProject(lesson.id, lesson.solution);
+    expect(files["reservations.ts"]).toContain("type Session");
+    expect(files["reservations.js"]).not.toContain("type Session");
+    expect(files["index.html"]).toContain('src="reservations.js"');
+  });
+  it("preview runs execute without tests, attempts, or completion", async () => {
+    const caller = createCaller({
+      db,
+      headers: new Headers({
+        host: "localhost:3000",
+        origin: "http://localhost:3000",
+      }),
+      learnerId: "preview-only",
+      userId: null,
+      guestId: "preview-only",
+    });
+    const preview = await caller.learning.run({
+      lessonId: "javascript-12",
+      code: 'console.log("I can experiment without solving the task");',
+    });
+    expect(preview.error).toBeNull();
+    expect(preview.output).toContain(
+      "I can experiment without solving the task",
+    );
+    expect(preview.checks).toEqual([]);
+    await caller.learning.run({
+      lessonId: "html-1",
+      code: getLesson("html-1")!.solution,
+    });
+    expect((await caller.learning.overview()).progress).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(attempts)
+        .where(eq(attempts.userId, "preview-only")),
+    ).toHaveLength(0);
+    const submitted = await caller.learning.submit({
+      lessonId: "html-1",
+      code: getLesson("html-1")!.solution,
+    });
+    expect(submitted.newlyCompleted).toBe(true);
+  });
+  it("keeps quiz attempts, retry scores, and completion in the normal progress model", async () => {
+    const caller = createCaller({
+      db,
+      headers: new Headers({
+        host: "localhost:3000",
+        origin: "http://localhost:3000",
+      }),
+      learnerId: "quiz-learner",
+      userId: null,
+      guestId: "quiz-learner",
+    });
+    const lesson = getLesson("html-15")!;
+    const answers = lesson.quiz!.map((question) => question.answer);
+    answers[0] = (answers[0]! + 1) % 4;
+    await caller.learning.submit({
+      lessonId: lesson.id,
+      code: JSON.stringify(answers),
+    });
+    let saved = (await caller.learning.overview()).progress[0]!;
+    expect(saved.completedAt).toBeNull();
+    expect(saved.growth).toBe(75);
+    await caller.learning.submit({
+      lessonId: lesson.id,
+      code: lesson.solution,
+    });
+    saved = (await caller.learning.overview()).progress[0]!;
+    expect(saved.completedAt).toBeInstanceOf(Date);
+    expect(saved.growth).toBe(100);
   });
 });
 describe("component simulator", () => {
@@ -277,10 +410,11 @@ describe("course flower growth", () => {
     const halfway = getCourseGrowth("html", state.progress);
     expect(halfway.stage).toBeLessThan(fullBloomStage);
     expect(halfway.bloomed).toBe(false);
-    await caller.learning.submit({
-      lessonId: course[1]!.id,
-      code: course[1]!.solution,
-    });
+    for (const lesson of course.slice(1))
+      await caller.learning.submit({
+        lessonId: lesson.id,
+        code: lesson.solution,
+      });
     state = await caller.learning.overview();
     expect(getCourseGrowth("html", state.progress)).toMatchObject({
       stage: fullBloomStage,

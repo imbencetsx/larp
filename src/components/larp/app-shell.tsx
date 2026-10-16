@@ -38,8 +38,9 @@ import {
 import { useLearning } from "./learning-provider";
 import { tracks, lessons } from "~/content/curriculum";
 import { cn } from "~/lib/utils";
+import { Topbar } from "./topbar";
 const nav = [
-  { href: "/courses", label: "Learn" },
+  { href: "/", label: "Learn" },
   { href: "/playground", label: "Playground" },
   { href: "/garden", label: "Garden" },
   { href: "/progress", label: "Progress" },
@@ -70,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handler);
   }, []);
   const active = (href: string) =>
-    href === "/courses"
+    href === "/"
       ? pathname === "/" ||
         pathname.startsWith("/courses") ||
         pathname.startsWith("/learn")
@@ -90,105 +91,97 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
-        <header className="topbar">
-          <div className="topbar-inner">
-            <Link href="/" className="brand" aria-label="LARP home">
-              <span className="wordmark">LARP</span>
-              <span className="logo-pixel" />
-            </Link>
-            <nav className="desktop-nav" aria-label="Main navigation">
-              {nav.map((n) => (
-                <Button
-                  key={n.href}
-                  size="lg"
-                  variant={active(n.href) ? "secondary" : "ghost"}
-                  render={<Link href={n.href} />}
-                  aria-current={active(n.href) ? "page" : undefined}
-                  className="topnav-link"
-                >
-                  {n.label}
-                </Button>
-              ))}
-            </nav>
-            <div className="topbar-actions">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="search-button"
-                      aria-label="Find a lesson"
-                      onClick={() => setSearch(true)}
-                    />
-                  }
-                >
-                  <Search aria-hidden="true" />
-                </TooltipTrigger>
-                <TooltipPopup>
-                  Search lessons <Kbd>⌘ K</Kbd>
-                </TooltipPopup>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="settings-link"
-                      aria-label="Settings"
-                      render={<Link href="/settings" />}
-                    />
-                  }
-                >
-                  <Settings aria-hidden="true" />
-                </TooltipTrigger>
-                <TooltipPopup>Settings</TooltipPopup>
-              </Tooltip>
-              {authEnabled ? (
-                <ClerkAccount />
-              ) : (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  render={<Link href="/settings" />}
-                  className="guest-avatar"
-                  aria-label="Guest profile"
-                >
-                  {data?.profile.name[0]?.toUpperCase() ?? "L"}
-                </Button>
-              )}
-              <Menu>
-                <MenuTrigger
-                  render={
-                    <Button
-                      className="mobile-menu"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Open navigation"
-                    />
-                  }
-                >
-                  <MenuIcon aria-hidden="true" />
-                </MenuTrigger>
-                <MenuPopup align="end" className="mobile-nav-popup">
-                  <MenuLinkItem render={<Link href="/" />}>
-                    Overview
+        <Topbar>
+          <nav className="desktop-nav" aria-label="Main navigation">
+            {nav.map((n) => (
+              <Button
+                key={n.href}
+                size="lg"
+                variant={active(n.href) ? "secondary" : "ghost"}
+                render={<Link href={n.href} />}
+                aria-current={active(n.href) ? "page" : undefined}
+                className="topnav-link"
+              >
+                {n.label}
+              </Button>
+            ))}
+          </nav>
+          <div className="topbar-actions">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="search-button"
+                    aria-label="Find a lesson"
+                    onClick={() => setSearch(true)}
+                  />
+                }
+              >
+                <Search aria-hidden="true" />
+              </TooltipTrigger>
+              <TooltipPopup>
+                Search lessons <Kbd>⌘ K</Kbd>
+              </TooltipPopup>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="settings-link"
+                    aria-label="Settings"
+                    render={<Link href="/settings" />}
+                  />
+                }
+              >
+                <Settings aria-hidden="true" />
+              </TooltipTrigger>
+              <TooltipPopup>Settings</TooltipPopup>
+            </Tooltip>
+            {authEnabled ? (
+              <ClerkAccount />
+            ) : (
+              <Button
+                variant="outline"
+                size="icon"
+                render={<Link href="/settings" />}
+                className="guest-avatar"
+                aria-label="Guest profile"
+              >
+                {data?.profile.name[0]?.toUpperCase() ?? "L"}
+              </Button>
+            )}
+            <Menu>
+              <MenuTrigger
+                render={
+                  <Button
+                    className="mobile-menu"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Open navigation"
+                  />
+                }
+              >
+                <MenuIcon aria-hidden="true" />
+              </MenuTrigger>
+              <MenuPopup align="end" className="mobile-nav-popup">
+                <MenuLinkItem render={<Link href="/" />}>Overview</MenuLinkItem>
+                {nav.map((n) => (
+                  <MenuLinkItem key={n.href} render={<Link href={n.href} />}>
+                    {n.label}
                   </MenuLinkItem>
-                  {nav.map((n) => (
-                    <MenuLinkItem key={n.href} render={<Link href={n.href} />}>
-                      {n.href === "/courses" ? "Learning paths" : n.label}
-                    </MenuLinkItem>
-                  ))}
-                  <MenuSeparator />
-                  <MenuLinkItem render={<Link href="/settings" />}>
-                    Settings
-                  </MenuLinkItem>
-                </MenuPopup>
-              </Menu>
-            </div>
+                ))}
+                <MenuSeparator />
+                <MenuLinkItem render={<Link href="/settings" />}>
+                  Settings
+                </MenuLinkItem>
+              </MenuPopup>
+            </Menu>
           </div>
-        </header>
+        </Topbar>
         {error && (
           <Alert variant="error" className="error-banner">
             <AlertDescription>

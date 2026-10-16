@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Lightbulb,
+  Download,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardHeader } from "~/components/ui/card";
@@ -33,6 +34,9 @@ import { fullBloomStage, getCourseGrowth } from "~/lib/garden";
 import { Badge } from "~/components/ui/badge";
 import { Editor, Preview, Snippet } from "./code-workspace";
 import type { RunResult } from "~/server/services/validate";
+import { initialFiles, readFiles, saveFiles } from "~/lib/workspace";
+import { downloadProject } from "~/lib/download-project";
+import { QuizWorkspace } from "./quiz-workspace";
 export function LessonWorkspace({ lesson }: { lesson: Lesson }) {
   const { data, loading } = useLearning();
   if (loading)
@@ -42,15 +46,19 @@ export function LessonWorkspace({ lesson }: { lesson: Lesson }) {
         Loading lesson…
       </div>
     );
+  const initialCode =
+    data?.progress.find((p) => p.lessonId === lesson.id)?.code ??
+    lesson.starter;
+  if (lesson.kind === "quiz")
+    return (
+      <QuizWorkspace
+        key={lesson.id}
+        lesson={lesson}
+        initialCode={initialCode}
+      />
+    );
   return (
-    <LessonContent
-      key={lesson.id}
-      lesson={lesson}
-      initialCode={
-        data?.progress.find((p) => p.lessonId === lesson.id)?.code ??
-        lesson.starter
-      }
-    />
+    <LessonContent key={lesson.id} lesson={lesson} initialCode={initialCode} />
   );
 }
 function LessonContent({
@@ -66,7 +74,12 @@ function LessonContent({
   const [lessonOpen, setLessonOpen] = useState(false);
   const [instructionTab, setInstructionTab] = useState("task");
   const [readingStep, setReadingStep] = useState(0);
-  const [code, setCode] = useState(initialCode);
+  const [files, setFiles] = useState(() => readFiles(lesson, initialCode));
+  const [activeFile, setActiveFile] = useState(lesson.filename);
+  const code = files[lesson.filename]!;
+  const draft = saveFiles(files);
+  const [lastAction, setLastAction] = useState<"run" | "submit" | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [result, setResult] = useState<
     (RunResult & { newlyCompleted: boolean }) | null
   >(null);
@@ -79,22 +92,26 @@ function LessonContent({
       onError: () => setStatus("Save failed — edit to retry"),
     });
   const submit = api.learning.submit.useMutation();
-  const current = useRef(code);
-  current.current = code;
+  const runner = api.learning.run.useMutation();
+  const exporter = api.learning.exportProject.useMutation();
+  const busy = runner.isPending || submit.isPending;
+  const current = useRef(draft);
+  current.current = draft;
   useEffect(() => {
     if (!dirty) return;
     setStatus("Unsaved changes");
     const timer = setTimeout(() => {
-      saveDraft({ lessonId: lesson.id, code });
+      saveDraft({ lessonId: lesson.id, code: draft });
       setDirty(false);
     }, 650);
     return () => clearTimeout(timer);
-  }, [code, dirty, lesson.id, saveDraft]);
+  }, [draft, dirty, lesson.id, saveDraft]);
   const track = tracks.find((t) => t.id === lesson.track)!;
   const next = lessons[lessons.findIndex((l) => l.id === lesson.id) + 1];
-  const run = async () => {
-    if (submit.isPending) return;
+  const submitCode = async () => {
+    if (busy) return;
     setDirty(false);
+    setLastAction("submit");
     try {
       const response = await submit.mutateAsync({
         lessonId: lesson.id,
@@ -117,11 +134,36 @@ function LessonContent({
       });
     }
   };
-  const reset = () => {
-    setCode(lesson.starter);
-    setResult(null);
+  const run = async () => {
+    if (busy) return;
     setDirty(false);
-    saveDraft({ lessonId: lesson.id, code: lesson.starter });
+    setLastAction("run");
+    saveDraft({ lessonId: lesson.id, code: current.current });
+    try {
+      const response = await runner.mutateAsync({
+        lessonId: lesson.id,
+        code: current.current,
+      });
+      setResult({ ...response, newlyCompleted: false });
+    } catch (error) {
+      setResult({
+        passed: false,
+        checks: [],
+        output: [],
+        preview: null,
+        error:
+          error instanceof Error ? error.message : "Could not run. Try again.",
+        newlyCompleted: false,
+      });
+    }
+  };
+  const reset = () => {
+    const resetFiles = initialFiles(lesson);
+    setFiles(resetFiles);
+    setResult(null);
+    setLastAction(null);
+    setDirty(false);
+    saveDraft({ lessonId: lesson.id, code: saveFiles(resetFiles) });
   };
   const instructions = (
     <Card
@@ -139,6 +181,7 @@ function LessonContent({
             <TabsTab value="task">Task</TabsTab>
             <TabsTab value="read">Read</TabsTab>
             <TabsTab value="example">Example</TabsTab>
+            {lesson.projectBrief && <TabsTab value="brief">Ship</TabsTab>}
           </TabsList>
         </CardHeader>
         <TabsPanel value="task">
@@ -198,6 +241,45 @@ function LessonContent({
             )}
           </div>
         </TabsPanel>
+        {lesson.projectBrief && (
+          <TabsPanel value="brief">
+            <div className="instruction-content">
+              <span className="eyebrow">PROJECT REVIEW</span>
+              <h2>Before you ship</h2>
+              <ul className="project-brief">
+                {lesson.projectBrief.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              <Button
+                variant="outline"
+                loading={exporter.isPending}
+                onClick={async () => {
+                  setDownloadError(null);
+                  try {
+                    downloadProject(
+                      await exporter.mutateAsync({
+                        lessonId: lesson.id,
+                        code: current.current,
+                      }),
+                      lesson.id,
+                    );
+                  } catch (error) {
+                    setDownloadError(
+                      error instanceof Error
+                        ? error.message
+                        : "Could not export project.",
+                    );
+                  }
+                }}
+              >
+                <Download aria-hidden="true" />
+                Download project ZIP
+              </Button>
+              {downloadError && <p role="alert">{downloadError}</p>}
+            </div>
+          </TabsPanel>
+        )}
         <TabsPanel value="read">
           <div className="instruction-content read-content">
             <span className="eyebrow">THE CONCEPT</span>
@@ -239,16 +321,21 @@ function LessonContent({
   );
   const editor = (
     <Editor
-      code={code}
+      code={files[activeFile]!}
       onChange={(value) => {
-        setCode(value);
+        setFiles((previous) => ({ ...previous, [activeFile]: value }));
         setDirty(true);
-        if (result?.passed) setResult(null);
+        setResult(null);
+        setLastAction(null);
       }}
-      filename={lesson.filename}
+      filename={activeFile}
+      files={Object.keys(files)}
+      onFileChange={setActiveFile}
       onRun={() => void run()}
+      onSubmit={() => void submitCode()}
       onReset={reset}
-      running={submit.isPending}
+      running={runner.isPending}
+      submitting={submit.isPending}
       saveStatus={saving ? "Saving…" : status}
       onBlur={() => {
         if (dirty) {
@@ -262,10 +349,14 @@ function LessonContent({
     <Preview
       track={lesson.track}
       code={code}
+      fixture={files["index.html"]}
+      stylesheet={files["styles.css"] ?? files["app/globals.css"]}
+      serializedCode={draft}
+      lessonId={lesson.id}
       result={result}
-      running={submit.isPending}
+      running={busy}
       simulation={lesson.track === "nextjs"}
-      withChecks
+      withChecks={lastAction === "submit"}
     />
   );
   return (
@@ -279,7 +370,13 @@ function LessonContent({
           <h1>{lesson.title}</h1>
         </div>
         <div className="lesson-topline-actions">
-          <span className="lesson-meta">{lesson.number} / {lessons.filter((item) => item.track === lesson.track).length}</span>
+          <span className="lesson-meta">
+            {lesson.number} /{" "}
+            {lessons.filter((item) => item.track === lesson.track).length}
+          </span>
+          {lesson.kind === "project" && (
+            <Badge variant="outline">PROJECT</Badge>
+          )}
           {mobile && (
             <Dialog open={lessonOpen} onOpenChange={setLessonOpen}>
               <DialogTrigger render={<Button variant="outline" />}>
@@ -333,9 +430,11 @@ function LessonContent({
             <span>
               {result?.error
                 ? "Fix the error and run again."
-                : result
-                  ? "Check the feedback and try again."
-                  : "Read the task. Write code. Run it."}
+                : lastAction === "run" && result
+                  ? "Preview ready. Submit to check your work."
+                  : result
+                    ? "Check the feedback and try again."
+                    : "Run to test. Submit to save completion."}
             </span>
             <Kbd>⌘ / Ctrl + Enter</Kbd>
           </>

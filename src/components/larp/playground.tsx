@@ -2,42 +2,41 @@
 import { useEffect, useState } from "react";
 import { Sprout } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { tracks, lessons, type TrackId } from "~/content/curriculum";
+import { tracks, type TrackId } from "~/content/curriculum";
 import { api } from "~/trpc/react";
 import { Editor, Preview } from "./code-workspace";
 import type { RunResult } from "~/server/services/validate";
-const defaults: Record<TrackId, string> = {
-  html: '<h1>Small ideas belong here.</h1>\n<p>Try a tag. Change a word. See what happens.</p>\n<a href="https://developer.mozilla.org">Keep exploring</a>',
-  css: ".plant {\n  color: #52734d;\n  background: #eef4e8;\n  padding: 24px;\n  border: 2px solid #b0c59d;\n  margin: 16px;\n}",
-  javascript:
-    'const ideas = ["learn", "experiment", "grow"];\n\nfor (const idea of ideas) {\n  console.log(`A little room to ${idea}.`);\n}',
-  typescript:
-    'type Plant = { name: string; leaves: number };\n\nconst fern: Plant = { name: "Fern", leaves: 4 };\nconsole.log(`${fern.name} has ${fern.leaves} leaves.`);',
-  nextjs: lessons.find((l) => l.id === "nextjs-1")!.solution,
-};
+import {
+  initialPlaygroundDrafts,
+  playgroundEntry,
+  playgroundProject,
+  playgroundFileLimit,
+  restorePlaygroundDrafts,
+} from "~/lib/playground";
+import { saveFiles } from "~/lib/workspace";
 export function Playground() {
   const [track, setTrack] = useState<TrackId>("html");
-  const [drafts, setDrafts] = useState(defaults);
+  const [drafts, setDrafts] = useState(initialPlaygroundDrafts);
+  const [activeFile, setActiveFile] = useState("index.html");
   const [result, setResult] = useState<RunResult | null>(null);
   const [storage, setStorage] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const run = api.learning.playground.useMutation();
+  const project = playgroundProject(track);
+  const files = drafts[project];
+  const draft = saveFiles(files);
+  const code = files[playgroundEntry(track)]!;
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("larp-playground-v1");
-      if (saved) {
-        const parsed = JSON.parse(saved) as Record<string, unknown>;
+      const saved = localStorage.getItem("larp-playground-v2");
+      const legacy = saved ? null : localStorage.getItem("larp-playground-v1");
+      if (saved || legacy)
         setDrafts(
-          Object.fromEntries(
-            tracks.map((t) => [
-              t.id,
-              typeof parsed[t.id] === "string"
-                ? String(parsed[t.id]).slice(0, 12000)
-                : defaults[t.id],
-            ]),
-          ) as Record<TrackId, string>,
+          restorePlaygroundDrafts(
+            JSON.parse(saved ?? legacy!) as unknown,
+            !saved,
+          ),
         );
-      }
     } catch {
       setStorage(false);
     }
@@ -47,7 +46,7 @@ export function Playground() {
     if (!loaded) return;
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem("larp-playground-v1", JSON.stringify(drafts));
+        localStorage.setItem("larp-playground-v2", JSON.stringify(drafts));
       } catch {
         setStorage(false);
       }
@@ -57,7 +56,7 @@ export function Playground() {
   const execute = async () => {
     if (run.isPending) return;
     try {
-      setResult(await run.mutateAsync({ track, code: drafts[track] }));
+      setResult(await run.mutateAsync({ track, code: draft }));
     } catch (e) {
       setResult({
         passed: false,
@@ -83,38 +82,52 @@ export function Playground() {
         className="playground-controls"
         aria-label="Choose programming language"
       >
-        {tracks.map((t) => (
-          <Button
-            disabled={run.isPending}
-            key={t.id}
-            variant={track === t.id ? "secondary" : "outline"}
-            size="sm"
-            className="language-button"
-            aria-pressed={track === t.id}
-            onClick={() => {
-              setTrack(t.id);
-              setResult(null);
-            }}
-          >
-            {t.name}
-          </Button>
-        ))}
+        {tracks
+          .filter((t) => t.id !== "css")
+          .map((t) => (
+            <Button
+              disabled={run.isPending}
+              key={t.id}
+              variant={track === t.id ? "secondary" : "outline"}
+              size="sm"
+              className="language-button"
+              aria-pressed={track === t.id}
+              onClick={() => {
+                setTrack(t.id);
+                setActiveFile(playgroundEntry(t.id));
+                setResult(null);
+              }}
+            >
+              {t.id === "html" ? "HTML & CSS" : t.name}
+            </Button>
+          ))}
       </div>
       <div className="playground-layout">
         <Editor
-          code={drafts[track]}
-          onChange={(code) => setDrafts((d) => ({ ...d, [track]: code }))}
-          filename={
-            track === "nextjs"
-              ? "app/garden/page.tsx"
-              : `experiment.${track === "javascript" ? "js" : track === "typescript" ? "ts" : track}`
-          }
-          onRun={() => void execute()}
-          onReset={() => {
-            setDrafts((d) => ({ ...d, [track]: defaults[track] }));
+          code={files[activeFile]!}
+          onChange={(value) => {
+            setDrafts((previous) => ({
+              ...previous,
+              [project]: { ...previous[project], [activeFile]: value },
+            }));
             setResult(null);
           }}
-          running={run.isPending}
+          filename={activeFile}
+          files={Object.keys(files)}
+          onFileChange={setActiveFile}
+          maxLength={playgroundFileLimit}
+          onRun={() => void execute()}
+          onReset={() => {
+            setDrafts((previous) => ({
+              ...previous,
+              [project]: {
+                ...previous[project],
+                [activeFile]: initialPlaygroundDrafts()[project][activeFile]!,
+              },
+            }));
+            setResult(null);
+          }}
+          running={run.isPending || !loaded}
           saveStatus={
             storage
               ? "Draft stored on this device"
@@ -124,7 +137,11 @@ export function Playground() {
         <Preview
           key={track}
           track={track}
-          code={drafts[track]}
+          code={code}
+          fixture={files["index.html"]}
+          stylesheet={files["styles.css"] ?? files["app/globals.css"]}
+          serializedCode={draft}
+          playgroundTrack={track}
           result={result}
           running={run.isPending}
           simulation={track === "nextjs"}
