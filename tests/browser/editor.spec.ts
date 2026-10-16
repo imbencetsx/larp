@@ -61,10 +61,20 @@ test("HTML tags close at the cursor, void tags stay open, and Tab is escapable",
   await expectCodeValue(editor, "    ");
   await editor.press("Shift+Tab");
   await expectCodeValue(editor, "  ");
-  await expect(editor.locator(".cm-highlightSpace")).toHaveCount(2);
+  await expect(
+    editor.locator(".cm-highlightSpace, .cm-highlightTab"),
+  ).toHaveCount(0);
   await editor.press("Escape");
   await page.keyboard.press("Tab");
   await expect(editor).not.toBeFocused();
+  await fillCode(editor, "  <h1>Indented</h1>");
+  await expect(editor.locator(".cm-indent-markers")).toHaveCount(1);
+  const guide = await editor.locator(".cm-indent-markers").evaluate((line) => {
+    const style = getComputedStyle(line, "::before");
+    return { background: style.backgroundImage, left: style.left };
+  });
+  expect(guide.background).toContain("repeating-linear-gradient");
+  expect(guide.left).toBe("12px");
 });
 
 test("IDE indentation, selection, backspace, undo, and run shortcuts work in exercises", async ({
