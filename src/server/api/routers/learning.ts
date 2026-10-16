@@ -12,11 +12,13 @@ import {
   validateExercise,
   runPlayground,
   simulateComponent,
+  runLesson,
 } from "~/server/services/validate";
 import { getLesson } from "~/content/curriculum";
+import { exportProject } from "~/server/services/compiler";
 const lessonInput = z.object({
   lessonId: z.string().refine((id) => Boolean(getLesson(id)), "Unknown lesson"),
-  code: z.string().max(12000),
+  code: z.string().max(60000),
 });
 const initialized = learnerProcedure.use(async ({ ctx, next }) => {
   await ensureLearner(ctx.learnerId, ctx.userId ? ctx.guestId : null);
@@ -62,6 +64,14 @@ export const learningRouter = createTRPCRouter({
       newlyCompleted,
     };
   }),
+  run: initialized.input(lessonInput).mutation(async ({ input }) => {
+    const evaluation = await runLesson(input.lessonId, input.code);
+    // Preview runs never write attempts, scores, or completion.
+    return { ...evaluation, passed: false, checks: [] };
+  }),
+  exportProject: initialized
+    .input(lessonInput)
+    .mutation(({ input }) => exportProject(input.lessonId, input.code)),
   playground: initialized
     .input(
       z.object({
@@ -101,10 +111,13 @@ export const learningRouter = createTRPCRouter({
   simulate: initialized
     .input(
       z.object({
-        code: z.string().max(12000),
+        code: z.string().max(60000),
         clicks: z.number().int().min(0).max(20),
+        lessonId: z.string().optional(),
       }),
     )
-    .mutation(({ input }) => simulateComponent(input.code, input.clicks)),
+    .mutation(({ input }) =>
+      simulateComponent(input.code, input.clicks, input.lessonId),
+    ),
   account: protectedProcedure.query(({ ctx }) => ({ userId: ctx.userId })),
 });

@@ -114,8 +114,12 @@ export function Editor({
   onChange,
   filename,
   onRun,
+  onSubmit,
   onReset,
   running = false,
+  submitting = false,
+  files,
+  onFileChange,
   saveStatus = "",
   onBlur,
 }: {
@@ -123,8 +127,12 @@ export function Editor({
   onChange: (s: string) => void;
   filename: string;
   onRun: () => void;
+  onSubmit?: () => void;
   onReset: () => void;
   running?: boolean;
+  submitting?: boolean;
+  files?: string[];
+  onFileChange?: (filename: string) => void;
   saveStatus?: string;
   onBlur?: () => void;
 }) {
@@ -142,13 +150,28 @@ export function Editor({
             variant="ghost"
             size="icon-xs"
             aria-label="Reset code to starter"
-            disabled={running}
+            disabled={running || submitting}
             onClick={onReset}
           >
             <RotateCcw aria-hidden="true" />
           </Button>
         </div>
       </CardHeader>
+      {files && files.length > 1 && (
+        <Tabs
+          value={filename}
+          onValueChange={(value) => onFileChange?.(String(value))}
+          className="file-tabs"
+        >
+          <TabsList variant="underline" aria-label="Project files">
+            {files.map((file) => (
+              <TabsTab key={file} value={file} disabled={running || submitting}>
+                {file}
+              </TabsTab>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
       <CardPanel className="code-editor-wrapper">
         <div className="line-numbers" aria-hidden="true" ref={gutter}>
           {Array.from(
@@ -161,13 +184,13 @@ export function Editor({
         <Textarea
           className="code-control"
           data-code-editor="true"
-          readOnly={running}
+          readOnly={running || submitting}
           aria-label={`Code editor for ${filename}`}
           spellCheck={false}
           autoCapitalize="off"
           autoCorrect="off"
           value={code}
-          maxLength={12000}
+          maxLength={30000}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
           onScroll={(event) => {
@@ -177,7 +200,8 @@ export function Editor({
           onKeyDown={(e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
               e.preventDefault();
-              onRun();
+              if (e.shiftKey && onSubmit) onSubmit();
+              else onRun();
             }
           }}
         />
@@ -196,19 +220,45 @@ export function Editor({
             </>
           )}
         </span>
-        <Button size="sm" loading={running} disabled={running} onClick={onRun}>
-          <Play aria-hidden="true" />
-          Run code
-        </Button>
+        <div className="editor-run-actions">
+          <Button
+            variant={onSubmit ? "outline" : "default"}
+            size="sm"
+            loading={running}
+            disabled={running || submitting}
+            onClick={onRun}
+          >
+            <Play aria-hidden="true" />
+            {onSubmit ? "Run" : "Run code"}
+          </Button>
+          {onSubmit && (
+            <Button
+              size="sm"
+              loading={submitting}
+              disabled={running || submitting}
+              onClick={onSubmit}
+            >
+              <CheckCircle2 aria-hidden="true" />
+              Submit
+            </Button>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );
 }
 const fixture =
   '<div class="plant"><h2>A little fern</h2><p>Give me a little room to grow.</p></div>';
-export function previewDocument(html: string, css = "") {
+export function previewDocument(
+  html: string,
+  css = "",
+  script?: string | null,
+) {
   const styles = css ? `<style>${css.replace(/<\/style/gi, " ")}</style>` : "";
-  return `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'; script-src 'none'">${styles}</head><body>${html}</body></html>`;
+  const scripts = script
+    ? `<script>${script.replace(/<\/script/gi, "<\\/script")}</script>`
+    : "";
+  return `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'; script-src ${script ? "'unsafe-inline'" : "'none'"}">${styles}</head><body>${html}${scripts}</body></html>`;
 }
 export function Preview({
   track,
@@ -217,6 +267,10 @@ export function Preview({
   running = false,
   simulation = false,
   withChecks = false,
+  fixture: lessonFixture,
+  stylesheet,
+  serializedCode,
+  lessonId,
 }: {
   track: string;
   code: string;
@@ -224,6 +278,10 @@ export function Preview({
   running?: boolean;
   simulation?: boolean;
   withChecks?: boolean;
+  fixture?: string;
+  stylesheet?: string;
+  serializedCode?: string;
+  lessonId?: string;
 }) {
   const [live, setLive] = useState(code);
   const [clicks, setClicks] = useState(0);
@@ -235,7 +293,11 @@ export function Preview({
   }, [code, result]);
   const stepSimulation = async (count: number) => {
     try {
-      const output = await simulator.mutateAsync({ code, clicks: count });
+      const output = await simulator.mutateAsync({
+        code: serializedCode ?? code,
+        clicks: count,
+        lessonId,
+      });
       setSimulated(output);
       if (!output.error) setClicks(count);
     } catch (error) {
@@ -260,14 +322,16 @@ export function Preview({
   useEffect(() => {
     if (result?.error) setTab("console");
     else if (withChecks && result && !result.passed) setTab("checks");
-    else if (result?.preview) setTab("preview");
+    else if (result?.preview || result?.browserCode) setTab("preview");
   }, [result, withChecks]);
   const html =
     track === "html"
       ? live
       : track === "css"
-        ? fixture
-        : (simulated?.preview ?? result?.preview);
+        ? (lessonFixture ?? fixture)
+        : result?.browserCode
+          ? lessonFixture
+          : (simulated?.preview ?? result?.preview);
   return (
     <Card
       render={<section />}
@@ -300,8 +364,12 @@ export function Preview({
             <iframe
               title="Sandboxed code preview"
               className="preview-frame rounded-lg border"
-              sandbox=""
-              srcDoc={previewDocument(html, track === "css" ? live : "")}
+              sandbox={result?.browserCode ? "allow-scripts allow-forms" : "allow-forms"}
+              srcDoc={previewDocument(
+                html,
+                track === "css" ? live : (stylesheet ?? ""),
+                result?.browserCode,
+              )}
             />
           ) : (
             <Empty className="preview-placeholder">
@@ -405,7 +473,9 @@ export function Preview({
       {track === "javascript" && result?.preview && (
         <div className="simulator-note">
           <Info aria-hidden="true" />
-          <span>Safe DOM preview fixture: createElement, textContent, and append.</span>
+          <span>
+            Safe DOM preview fixture: createElement, textContent, and append.
+          </span>
         </div>
       )}
     </Card>

@@ -1,9 +1,29 @@
 export type TrackId = "html" | "css" | "javascript" | "typescript" | "nextjs";
 export type LessonCheck =
-  | { kind: "html"; selector: string; text?: string; attribute?: string; value?: string }
+  | {
+      kind: "html";
+      selector: string;
+      text?: string;
+      attribute?: string;
+      value?: string;
+    }
   | { kind: "css"; selector: string; property: string; value: string }
   | { kind: "runtime"; expression: string }
-  | { kind: "next"; tags?: string[]; text?: string; directive?: string };
+  | {
+      kind: "next";
+      tags?: string[];
+      text?: string;
+      directive?: string;
+      clicks?: number;
+      button?: string;
+    };
+export type QuizQuestion = {
+  prompt: string;
+  code?: string;
+  choices: string[];
+  answer: number;
+  explanation: string;
+};
 export type Lesson = {
   id: string;
   track: TrackId;
@@ -22,6 +42,12 @@ export type Lesson = {
   recap: string;
   filename: string;
   checks?: LessonCheck[];
+  kind?: "exercise" | "quiz" | "project";
+  chapter?: string;
+  quiz?: QuizQuestion[];
+  fixture?: string;
+  projectBrief?: string[];
+  files?: Record<string, string>;
 };
 export type Track = {
   id: TrackId;
@@ -82,7 +108,7 @@ export const tracks: Track[] = [
     color: "stone",
     level: "Intermediate",
     prerequisite: "JavaScript, TypeScript, and React basics",
-  plant: "Rose",
+    plant: "Rose",
   },
 ];
 const firstLessons: Lesson[] = [
@@ -422,7 +448,33 @@ const firstLessons: Lesson[] = [
   },
 ];
 import { continuationLessons } from "~/content/continuation";
-export const lessons: Lesson[] = [...firstLessons, ...continuationLessons];
+import { advancedLessons } from "~/content/advanced";
+const chapters = [
+  "First steps",
+  "Build the pieces",
+  "Beyond the basics",
+  "Application patterns",
+  "Make it reliable",
+  "Go deeper",
+  "Ship complete projects",
+];
+export const lessons: Lesson[] = [
+  ...firstLessons,
+  ...continuationLessons,
+  ...advancedLessons,
+]
+  .map((lesson) => ({
+    ...lesson,
+    kind: lesson.kind ?? "exercise",
+    chapter:
+      lesson.chapter ??
+      chapters[Math.min(6, Math.floor((lesson.number - 1) / 5))]!,
+  }))
+  .sort(
+    (a, b) =>
+      tracks.findIndex((t) => t.id === a.track) -
+        tracks.findIndex((t) => t.id === b.track) || a.number - b.number,
+  );
 export function getTrack(id: string) {
   return tracks.find((t) => t.id === id);
 }

@@ -1,27 +1,56 @@
-import { test, expect } from "@playwright/test";
-import { lessons } from "../../src/content/curriculum";
+import { test, expect, type Page } from "@playwright/test";
+import { lessons, type Lesson } from "../../src/content/curriculum";
 
-test("complete the curriculum, preserve progress, and avoid duplicate completion", async ({
-  page,
-}) => {
-  test.setTimeout(300_000);
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  for (const lesson of lessons) {
-    await page.goto(`/learn/${lesson.track}/${lesson.number}`);
+async function completeLesson(page: Page, lesson: Lesson) {
+  await page.goto(`/learn/${lesson.track}/${lesson.number}`);
+  if (lesson.kind === "quiz") {
+    for (const [i, question] of lesson.quiz!.entries()) {
+      await page
+        .getByRole("radio", {
+          name: new RegExp(
+            question.choices[question.answer]!.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&",
+            ),
+          ),
+        })
+        .check();
+      if (i < lesson.quiz!.length - 1)
+        await page.getByRole("button", { name: "Next", exact: true }).click();
+    }
+    await page
+      .getByRole("button", { name: "Submit answers", exact: true })
+      .click();
+    await expect(
+      page.getByText("Quiz complete.", { exact: true }),
+    ).toBeVisible();
+  } else {
     const editor = page.getByRole("textbox", {
       name: `Code editor for ${lesson.filename}`,
     });
     await expect(editor).toBeVisible();
     await editor.fill(lesson.solution);
-    await page.getByRole("button", { name: "Run code", exact: true }).click();
+    await page.getByRole("button", { name: "Submit", exact: true }).click();
     await expect(page.getByText("All checks passed.")).toBeVisible();
+  }
+}
+
+test("complete the curriculum, preserve progress, and avoid duplicate completion", async ({
+  page,
+}) => {
+  test.setTimeout(600_000);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  for (const lesson of lessons) {
+    await completeLesson(page, lesson);
     await expect(page.locator(".completion-panel")).toBeVisible();
   }
-  await page.getByRole("button", { name: "Run code", exact: true }).click();
+  await page.getByRole("button", { name: "Submit", exact: true }).click();
   await expect(page.getByText("Already completed")).toBeVisible();
   await page.goto("/progress");
-  await expect(page.locator(".progress-stat").first()).toContainText(String(lessons.length));
+  await expect(page.locator(".progress-stat").first()).toContainText(
+    String(lessons.length),
+  );
   await expect(page.locator(".recent-row")).toHaveCount(lessons.length);
   await page.reload();
   await expect(page.locator(".recent-row")).toHaveCount(lessons.length);
@@ -136,7 +165,7 @@ test("Next.js simulator responds to explicit click controls", async ({
   await page
     .getByRole("textbox", { name: `Code editor for ${lesson.filename}` })
     .fill(lesson.solution);
-  await page.getByRole("button", { name: "Run code", exact: true }).click();
+  await page.getByRole("button", { name: "Submit", exact: true }).click();
   await expect(page.getByText("All checks passed.")).toBeVisible();
   await expect(
     page
@@ -225,6 +254,7 @@ test("coding workspaces keep editor and preview in the viewport", async ({
 test("each course flower grows from checks and blooms only after course completion", async ({
   page,
 }) => {
+  test.setTimeout(180_000);
   await page.goto("/garden");
   await expect(page.getByText("0 / 5 flowers bloomed")).toBeVisible();
   await page.getByRole("button", { name: "Growth stages" }).click();
@@ -237,23 +267,18 @@ test("each course flower grows from checks and blooms only after course completi
   await page
     .getByRole("textbox", { name: "Code editor for index.html" })
     .fill("<!DOCTYPE html>");
-  await page.getByRole("button", { name: "Run code", exact: true }).click();
+  await page.getByRole("button", { name: "Submit", exact: true }).click();
   await expect(page.locator(".lesson-plant-growth")).toContainText("Seed");
   await page.goto("/garden");
   const daisy = page.locator('[data-flower-course="html"]');
-  await expect(daisy).toContainText("Stage 1 / 12");
+  await expect(daisy).toContainText("Stage 2 / 12");
   await expect(page.locator('.garden-plot[data-bloomed="true"]')).toHaveCount(
     0,
   );
   await page.reload();
-  await expect(daisy).toContainText("Stage 1 / 12");
+  await expect(daisy).toContainText("Stage 2 / 12");
   for (const lesson of lessons.filter((lesson) => lesson.track === "html")) {
-    await page.goto(`/learn/html/${lesson.number}`);
-    await page
-      .getByRole("textbox", { name: `Code editor for ${lesson.filename}` })
-      .fill(lesson.solution);
-    await page.getByRole("button", { name: "Run code", exact: true }).click();
-    await expect(page.getByText("All checks passed.")).toBeVisible();
+    await completeLesson(page, lesson);
   }
   await page.goto("/garden");
   await expect(page.getByText("1 / 5 flowers bloomed")).toBeVisible();

@@ -3,6 +3,13 @@ import postcss from "postcss";
 import { parseHTML } from "linkedom";
 import { getQuickJS } from "quickjs-emscripten";
 import { getLesson, type TrackId } from "~/content/curriculum";
+import { readFiles } from "~/lib/workspace";
+import {
+  checkTypes as typecheck,
+  compileComponent,
+  compileBrowser,
+} from "./compiler";
+import { reactHarness } from "./react-harness";
 export type Check = { label: string; passed: boolean };
 export type RunResult = {
   passed: boolean;
@@ -10,6 +17,7 @@ export type RunResult = {
   output: string[];
   error: string | null;
   preview: string | null;
+  browserCode?: string | null;
 };
 const result = (
   checks: Check[],
@@ -25,60 +33,6 @@ const result = (
 });
 const named = (labels: string[], values: boolean[]) =>
   labels.map((label, i) => ({ label, passed: values[i] ?? false }));
-function typecheck(code: string, jsx = false) {
-  const filename = jsx ? "/exercise.tsx" : "/exercise.ts";
-  const options: ts.CompilerOptions = {
-    target: ts.ScriptTarget.ES2020,
-    module: ts.ModuleKind.CommonJS,
-    strict: true,
-    noEmit: true,
-    types: [],
-    jsx: ts.JsxEmit.React,
-    skipLibCheck: true,
-  };
-  const host = ts.createCompilerHost(options);
-  const original = host.getSourceFile.bind(host);
-  host.getSourceFile = (file, language, onError, shouldCreate) => {
-    if (file === filename)
-      return ts.createSourceFile(
-        file,
-        code,
-        language,
-        true,
-        jsx ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-      );
-    if (file === "/react-stub.d.ts")
-      return ts.createSourceFile(
-        file,
-        `declare namespace JSX { interface IntrinsicElements { [key: string]: { [key: string]: unknown } } }\ndeclare namespace React { type ReactNode = unknown; }\ndeclare const React: {createElement: (...args: unknown[]) => unknown};\ndeclare module "react" { export function useState<T>(initial:T): [T, (value:T|((previous:T)=>T))=>void]; }`,
-        language,
-        true,
-      );
-    // Only the TypeScript standard library is readable by the checker.
-    // Learner imports and triple-slash references cannot load host files.
-    const libraryRoot = ts
-      .getDefaultLibFilePath(options)
-      .replace(/[^/\\]+$/, "");
-    if (!file.startsWith(libraryRoot)) return undefined;
-    return original(file, language, onError, shouldCreate);
-  };
-  const program = ts.createProgram(
-    [filename, ...(jsx ? ["/react-stub.d.ts"] : [])],
-    options,
-    host,
-  );
-  return ts
-    .getPreEmitDiagnostics(program)
-    .filter((d) => d.category === ts.DiagnosticCategory.Error)
-    .slice(0, 5)
-    .map((d) => {
-      const location =
-        d.file && d.start !== undefined
-          ? `Line ${d.file.getLineAndCharacterOfPosition(d.start).line + 1}: `
-          : "";
-      return location + ts.flattenDiagnosticMessageText(d.messageText, " ");
-    });
-}
 async function sandbox(
   source: string,
   test: string,
@@ -94,21 +48,18 @@ async function sandbox(
   const vm = runtime.newContext();
   try {
     const harness = `var __logs=[]; var console={log:(...args)=>{if(__logs.length<30)__logs.push(args.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' ').slice(0,1000))},error:(...args)=>console.log(...args),warn:(...args)=>console.log(...args)};`;
-    const reactHarness = react
-      ? `var exports={}; var __state=[]; var __cursor=0; var React={createElement:(tag,props,...children)=>({tag,props:props||{},children:children.flat(Infinity)})}; function require(name){if(name!=='react') throw Error('Only react is available in this simulator'); return {useState:(initial)=>{const i=__cursor++;if(!(i in __state))__state[i]=initial;return [__state[i],value=>{__state[i]=typeof value==='function'?value(__state[i]):value}]}}} function __render(){__cursor=0;return exports.default()} function __text(node){return node==null?'':typeof node==='object'?(node.children||[]).map(__text).join(''):String(node)} function __find(node,tag){if(!node||typeof node!=='object')return null;if(node.tag===tag)return node;for(const child of node.children||[]){const found=__find(child,tag);if(found)return found}return null} function __safeTree(node){if(node==null||typeof node==='boolean')return '';if(typeof node!=='object')return String(node);return {tag:typeof node.tag==='string'?node.tag:'div',children:(node.children||[]).map(__safeTree)}}`
-      : "";
     const domHarness = dom
       ? `var __root={tag:'main',children:[],textContent:'',append(...items){this.children.push(...items)}};var __list={tag:'ul',children:[],textContent:'',append(...items){this.children.push(...items)},appendChild(item){this.children.push(item)}};__root.children.push({tag:'h1',children:[],textContent:'Seed shelf'});__root.children.push(__list);function __element(tag){return {tag,children:[],textContent:'',append(...items){this.children.push(...items)},appendChild(item){this.children.push(item)}}}var document={createElement:__element,querySelector(selector){return selector==='#plant-list'?__list:selector==='main'?__root:null}};function __text(node){if(node==null)return '';if(typeof node!=='object')return String(node);return (node.textContent||'')+(node.children||[]).map(__text).join('')}function __find(node,tag){if(!node||typeof node!=='object')return null;if(node.tag===tag)return node;for(const child of node.children||[]){const found=__find(child,tag);if(found)return found}return null}function __safeTree(node){if(node==null||typeof node==='boolean')return '';if(typeof node!=='object')return String(node);return {tag:typeof node.tag==='string'?node.tag:'div',children:[...(node.textContent?[String(node.textContent)]:[]),...(node.children||[]).map(__safeTree)]}}`
       : "";
     const evaluation = vm.evalCode(
       harness +
-        reactHarness +
+        (react ? reactHarness : "") +
         domHarness +
         "\n" +
         source +
-        "\n;JSON.stringify((()=>{" +
+        "\n;var __testResult;var __testError;(async()=>{try{__testResult=JSON.stringify(await(async()=>{" +
         test +
-        "})())",
+        "})())}catch(e){__testError=String(e&&e.message||e)}})();",
     );
     if (evaluation.error) {
       const dumped = vm.dump(evaluation.error) as { message?: string };
@@ -119,8 +70,33 @@ async function sandbox(
           : (dumped.message ?? "Code could not run."),
       );
     }
-    const raw = vm.getString(evaluation.value);
     evaluation.value.dispose();
+    while (runtime.hasPendingJob()) {
+      const pending = runtime.executePendingJobs();
+      if (pending.error) {
+        const failure = vm.dump(pending.error) as { message?: string };
+        pending.error.dispose();
+        throw new Error(failure.message ?? "Async execution failed.");
+      }
+    }
+    const settled = vm.evalCode(
+      "JSON.stringify({value:__testResult,error:__testError})",
+    );
+    if (settled.error) {
+      settled.error.dispose();
+      throw new Error("Async execution failed.");
+    }
+    const state = JSON.parse(vm.getString(settled.value)) as {
+      value?: string;
+      error?: string;
+    };
+    settled.value.dispose();
+    if (state.error) throw new Error(state.error);
+    if (!state.value)
+      throw new Error(
+        "A promise did not settle. The sandbox supports immediate promises, not timers or network requests.",
+      );
+    const raw = state.value;
     return JSON.parse(raw) as {
       values: boolean[];
       logs: string[];
@@ -131,7 +107,8 @@ async function sandbox(
     runtime.dispose();
   }
 }
-type Tree = string | { tag: string; children: Tree[] };
+type Tree =
+  string | { tag: string; props?: Record<string, string>; children: Tree[] };
 function escape(text: string) {
   return text.replace(
     /[&<>"']/g,
@@ -144,12 +121,24 @@ function escape(text: string) {
 function treeHTML(tree: Tree): string {
   if (typeof tree === "string") return escape(tree);
   const tag =
-    /^(main|section|article|div|span|h[1-6]|p|button|ul|ol|li|strong|em)$/.test(
+    /^(main|section|article|div|span|h[1-6]|p|button|ul|ol|li|strong|em|label|input|form|select|option|header|footer|nav|a)$/.test(
       tree.tag,
     )
       ? tree.tag
       : "div";
-  return `<${tag}${tag === "button" ? " disabled" : ""}>${tree.children.map(treeHTML).join("")}</${tag}>`;
+  const attrs = Object.entries(tree.props ?? {})
+    .filter(([key]) =>
+      /^(id|className|htmlFor|type|value|role|aria-label|aria-pressed|aria-busy)$/.test(
+        key,
+      ),
+    )
+    .map(
+      ([key, value]) =>
+        ` ${key === "className" ? "class" : key === "htmlFor" ? "for" : key}="${escape(value)}"`,
+    )
+    .join("");
+  if (tag === "input") return `<input${attrs} disabled>`;
+  return `<${tag}${attrs}${tag === "button" ? " disabled" : ""}>${tree.children.map(treeHTML).join("")}</${tag}>`;
 }
 function sourceFile(code: string, jsx = false) {
   return ts.createSourceFile(
@@ -178,12 +167,67 @@ export async function validateExercise(
   lessonId: string,
   code: string,
 ): Promise<RunResult> {
+  const evaluation = await evaluateExercise(lessonId, code);
+  const lesson = getLesson(lessonId);
+  if (
+    !evaluation.error &&
+    lesson?.fixture &&
+    (lesson.track === "javascript" || lesson.track === "typescript")
+  ) {
+    evaluation.browserCode = compileBrowser(
+      readFiles(lesson, code)[lesson.filename]!,
+      lesson.track,
+    );
+  }
+  return evaluation;
+}
+async function evaluateExercise(
+  lessonId: string,
+  code: string,
+): Promise<RunResult> {
   const lesson = getLesson(lessonId);
   if (!lesson) return result([], [], "Lesson not found.");
-  if (code.length > 12000)
-    return result([], [], "Keep your exercise under 12,000 characters.");
+  if (code.length > 60000)
+    return result([], [], "Keep your project under 60,000 characters.");
   const labels = lesson.requirements;
   try {
+    if (lesson.kind === "quiz" && lesson.quiz) {
+      let answers: unknown;
+      try {
+        answers = JSON.parse(code);
+      } catch {
+        return result(
+          named(labels, []),
+          [],
+          "Choose one answer for every question.",
+        );
+      }
+      if (
+        !Array.isArray(answers) ||
+        answers.length !== lesson.quiz.length ||
+        !answers.every(
+          (answer, i) =>
+            Number.isInteger(answer) &&
+            answer >= 0 &&
+            answer < lesson.quiz![i]!.choices.length,
+        )
+      ) {
+        return result(
+          named(labels, []),
+          [],
+          "Choose one answer for every question.",
+        );
+      }
+      return result(
+        named(
+          labels,
+          lesson.quiz.map((question, i) => answers[i] === question.answer),
+        ),
+        lesson.quiz.map((question) => question.explanation),
+      );
+    }
+    const files = readFiles(lesson, code);
+    code = files[lesson.filename] ?? code;
     if (lesson.checks?.length) {
       const checks = lesson.checks;
       if (lesson.track === "html") {
@@ -195,10 +239,20 @@ export async function validateExercise(
               if (check.kind !== "html") return false;
               const node = document.querySelector(check.selector);
               if (!node) return false;
-              if (check.text && !node.textContent?.toLowerCase().includes(check.text.toLowerCase())) return false;
+              if (
+                check.text &&
+                !node.textContent
+                  ?.toLowerCase()
+                  .includes(check.text.toLowerCase())
+              )
+                return false;
               if (check.attribute) {
                 const attribute = node.getAttribute(check.attribute);
-                if (attribute === null || (check.value !== undefined && attribute !== check.value)) return false;
+                if (
+                  attribute === null ||
+                  (check.value !== undefined && attribute !== check.value)
+                )
+                  return false;
               }
               return true;
             }),
@@ -212,18 +266,34 @@ export async function validateExercise(
         const root = postcss.parse(code);
         const values = checks.map((check) => {
           if (check.kind !== "css") return false;
-          const mediaPrefix = /^(@media\s*\([^)]*\))\s+(.+)$/i.exec(check.selector);
+          const mediaPrefix =
+            /^(@[\w-]+(?:\s+\([^)]*\)|\s+[\w-]+))\s+(.+)$/i.exec(
+              check.selector,
+            );
           const selector = mediaPrefix?.[2] ?? check.selector;
           let matched = false;
           root.walkRules((rule) => {
-            if (!rule.selector.split(",").map((part) => part.trim()).includes(selector)) return;
+            if (
+              !rule.selector
+                .split(",")
+                .map((part) => part.trim())
+                .includes(selector)
+            )
+              return;
             if (mediaPrefix) {
               const parent = rule.parent;
-              const mediaFound = parent?.type === "atrule" && parent.name === "media" && `@media ${parent.params}`.toLowerCase() === mediaPrefix[1]!.toLowerCase();
+              const mediaFound =
+                parent?.type === "atrule" &&
+                `@${parent.name} ${parent.params}`.toLowerCase() ===
+                  mediaPrefix[1]!.toLowerCase();
               if (!mediaFound) return;
             }
             rule.walkDecls((decl) => {
-              if (decl.prop === check.property && decl.value.trim().toLowerCase() === check.value.toLowerCase()) matched = true;
+              if (
+                decl.prop === check.property &&
+                decl.value.trim().toLowerCase() === check.value.toLowerCase()
+              )
+                matched = true;
             });
           });
           return matched;
@@ -231,14 +301,30 @@ export async function validateExercise(
         return result(named(labels, values));
       }
       if (lesson.track === "typescript") {
-        const errors = typecheck(code);
-        if (errors.length) return result(named(labels, checks.map(() => false)), errors, "Fix the type errors, then run your code again.");
+        const errors = typecheck(code, false, files, lesson.filename);
+        if (errors.length)
+          return result(
+            named(
+              labels,
+              checks.map(() => false),
+            ),
+            errors,
+            "Fix the type errors, then run your code again.",
+          );
       }
       if (lesson.track === "javascript" || lesson.track === "typescript") {
-        const source = lesson.track === "typescript"
-          ? ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.None } }).outputText
-          : code;
-        const expressions = checks.map((check) => check.kind === "runtime" ? `Boolean(${check.expression})` : "false");
+        const source =
+          lesson.track === "typescript"
+            ? ts.transpileModule(code, {
+                compilerOptions: {
+                  target: ts.ScriptTarget.ES2020,
+                  module: ts.ModuleKind.None,
+                },
+              }).outputText
+            : code;
+        const expressions = checks.map((check) =>
+          check.kind === "runtime" ? `Boolean(${check.expression})` : "false",
+        );
         const includePreview = lesson.id === "javascript-10";
         const run = await sandbox(
           source,
@@ -246,26 +332,82 @@ export async function validateExercise(
           false,
           includePreview,
         );
-        return result(named(labels, run.values), run.logs, null, run.tree ? treeHTML(run.tree) : null);
+        return result(
+          named(labels, run.values),
+          run.logs,
+          null,
+          run.tree ? treeHTML(run.tree) : null,
+        );
       }
       if (lesson.track === "nextjs") {
-        const errors = typecheck(code, true);
-        if (errors.length) return result(named(labels, checks.map(() => false)), errors, "Fix the type errors, then run your code again.");
+        const errors = typecheck(code, true, files, lesson.filename);
+        if (errors.length)
+          return result(
+            named(
+              labels,
+              checks.map(() => false),
+            ),
+            errors,
+            "Fix the type errors, then run your code again.",
+          );
         const file = sourceFile(code, true);
-        const client = file.statements.some((node, index) => index === 0 && ts.isExpressionStatement(node) && ts.isStringLiteral(node.expression) && node.expression.text === "use client");
-        const metadata = file.statements.some((node) => ts.isVariableStatement(node) && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) && node.declarationList.declarations.some((declaration) => ts.isIdentifier(declaration.name) && declaration.name.text === "metadata"));
-        const compiled = ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React } }).outputText;
+        const client = file.statements.some(
+          (node, index) =>
+            index === 0 &&
+            ts.isExpressionStatement(node) &&
+            ts.isStringLiteral(node.expression) &&
+            node.expression.text === "use client",
+        );
+        const metadata = file.statements.some(
+          (node) =>
+            ts.isVariableStatement(node) &&
+            node.modifiers?.some(
+              (m) => m.kind === ts.SyntaxKind.ExportKeyword,
+            ) &&
+            node.declarationList.declarations.some(
+              (declaration) =>
+                ts.isIdentifier(declaration.name) &&
+                declaration.name.text === "metadata",
+            ),
+        );
+        const compiled = compileComponent(code, files, lesson.filename);
         const assertions = checks.map((check) => {
+          if (check.kind === "runtime") return `Boolean(${check.expression})`;
           if (check.kind !== "next") return "false";
-          const tags = (check.tags ?? []).map((tag) => `!!__find(tree,${JSON.stringify(tag)})`);
-          const textMatches = check.text ? `__text(tree).toLowerCase().includes(${JSON.stringify(check.text.toLowerCase())})` : "true";
-          const directive = check.directive === "client" ? String(client) : check.directive === "server" ? String(!client) : check.directive === "metadata" ? String(metadata) : "true";
-          const busy = check.directive === "busy" ? `__find(tree,'main')?.props?.['aria-busy'] === 'true'` : "true";
-          const clicks = check.text && /(?:^|\s)2(?:\s|$)/.test(check.text) ? 2 : 0;
-          return `(()=>{__state=[];let tree=__render();for(let i=0;i<${clicks};i++){const button=__find(tree,'button');if(button&&typeof button.props.onClick==='function'){button.props.onClick();tree=__render()}}return [${tags.join(",")},${textMatches},${directive},${busy}].every(Boolean)})()`;
+          const tags = (check.tags ?? []).map(
+            (tag) => `!!__find(tree,${JSON.stringify(tag)})`,
+          );
+          const textMatches = check.text
+            ? `__text(tree).toLowerCase().includes(${JSON.stringify(check.text.toLowerCase())})`
+            : "true";
+          const directive =
+            check.directive === "client"
+              ? String(client)
+              : check.directive === "server"
+                ? String(!client)
+                : check.directive === "metadata"
+                  ? String(metadata)
+                  : "true";
+          const busy =
+            check.directive === "busy"
+              ? `__find(tree,'main')?.props?.['aria-busy'] === 'true'`
+              : "true";
+          const clicks =
+            check.clicks ??
+            (check.text && /(?:^|\s)2(?:\s|$)/.test(check.text) ? 2 : 0);
+          return `await(async()=>{__state=[];let tree=await __render();for(let i=0;i<${clicks};i++){const button=__findButton(tree,${JSON.stringify(check.button ?? "")});if(button&&typeof button.props.onClick==='function'){button.props.onClick();tree=await __render()}}return [${tags.join(",")},${textMatches},${directive},${busy}].every(Boolean)})()`;
         });
-        const run = await sandbox(compiled, `return {values:[${assertions.join(",")}],logs:__logs,tree:__safeTree((__state=[],__render()))};`, true);
-        return result(named(labels, run.values), run.logs, null, run.tree ? treeHTML(run.tree) : null);
+        const run = await sandbox(
+          compiled,
+          `return {values:[${assertions.join(",")}],logs:__logs,tree:__safeTree((__state=[],await __render()))};`,
+          true,
+        );
+        return result(
+          named(labels, run.values),
+          run.logs,
+          null,
+          run.tree ? treeHTML(run.tree) : null,
+        );
       }
     }
     if (lesson.track === "html") {
@@ -444,6 +586,51 @@ export async function validateExercise(
     );
   }
 }
+export async function runLesson(
+  lessonId: string,
+  saved: string,
+): Promise<RunResult> {
+  const lesson = getLesson(lessonId);
+  if (!lesson || lesson.kind === "quiz")
+    return result([], [], "Open a coding lesson to run a project.");
+  if (saved.length > 60000)
+    return result([], [], "Keep your project under 60,000 characters.");
+  if (lesson.track === "nextjs") return simulateComponent(saved, 0, lessonId);
+  const files = readFiles(lesson, saved);
+  const code = files[lesson.filename]!;
+  if (lesson.track === "html" || lesson.track === "css")
+    return runPlayground(lesson.track, code);
+  try {
+    if (lesson.track === "typescript") {
+      const errors = typecheck(code, false, files, lesson.filename);
+      if (errors.length)
+        return result([], errors, "Fix the type errors before running.");
+    }
+    const source = compileBrowser(code, lesson.track);
+    const dom = lesson.id === "javascript-10";
+    const executed = await sandbox(
+      source,
+      `return {values:[],logs:__logs${dom ? ",tree:__safeTree(__root)" : ""}};`,
+      false,
+      dom,
+    );
+    return {
+      ...result(
+        [],
+        executed.logs,
+        null,
+        executed.tree ? treeHTML(executed.tree) : null,
+      ),
+      browserCode: lesson.fixture ? source : null,
+    };
+  } catch (error) {
+    return result(
+      [],
+      [],
+      error instanceof Error ? error.message : "Could not run your code.",
+    );
+  }
+}
 export async function runPlayground(
   track: TrackId,
   code: string,
@@ -495,9 +682,10 @@ export async function runPlayground(
 export async function simulateComponent(
   code: string,
   clicks: number,
+  lessonId?: string,
 ): Promise<RunResult> {
   if (
-    code.length > 12000 ||
+    code.length > 60000 ||
     !Number.isInteger(clicks) ||
     clicks < 0 ||
     clicks > 20
@@ -505,22 +693,19 @@ export async function simulateComponent(
     return result(
       [],
       [],
-      "Keep the simulation within 20 clicks and 12,000 characters.",
+      "Keep the simulation within 20 clicks and 60,000 characters.",
     );
   try {
-    const errors = typecheck(code, true);
+    const lesson = lessonId ? getLesson(lessonId) : undefined;
+    const files = lesson ? readFiles(lesson, code) : undefined;
+    if (lesson && files) code = files[lesson.filename] ?? code;
+    const errors = typecheck(code, true, files, lesson?.filename);
     if (errors.length)
       return result([], errors, "Fix the type errors before simulating.");
-    const compiled = ts.transpileModule(code, {
-      compilerOptions: {
-        target: ts.ScriptTarget.ES2020,
-        module: ts.ModuleKind.CommonJS,
-        jsx: ts.JsxEmit.React,
-      },
-    }).outputText;
+    const compiled = compileComponent(code, files, lesson?.filename);
     const run = await sandbox(
       compiled,
-      `let tree=__render();for(let i=0;i<${clicks};i++){const button=__find(tree,'button');if(!button||typeof button.props.onClick!=='function')throw Error('Add an onClick handler to your button first.');button.props.onClick();tree=__render()}return {values:[],logs:__logs,tree:__safeTree(tree)};`,
+      `let tree=await __render();for(let i=0;i<${clicks};i++){const button=__find(tree,'button');if(!button||typeof button.props.onClick!=='function')throw Error('Add an onClick handler to your button first.');button.props.onClick();tree=await __render()}return {values:[],logs:__logs,tree:__safeTree(tree)};`,
       true,
     );
     return result([], run.logs, null, run.tree ? treeHTML(run.tree) : null);
