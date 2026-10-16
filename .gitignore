@@ -62,3 +62,6 @@ bun-debug.log*
 
 # SQLite sidecar files
 db.sqlite-*
+
+# Bundled simulator worker (rebuilt before dev, build, and tests)
+/generated/

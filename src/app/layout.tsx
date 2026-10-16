@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     "Learn HTML, CSS, JavaScript, TypeScript, and Next.js through small lessons, hands-on practice, and a garden that grows with you.",
   icons: [{ rel: "icon", url: "/icon.svg" }],
 };
+export const dynamic = "force-dynamic";
 export default function RootLayout({
   children,
 }: {
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body>
         {configured ? (
           <ClerkProvider
+            dynamic
             signInUrl="/sign-in"
             signUpUrl="/sign-up"
             appearance={{

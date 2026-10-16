@@ -458,7 +458,7 @@ const chapters = [
   "Go deeper",
   "Ship complete projects",
 ];
-export const lessons: Lesson[] = [
+export const rawLessons: Lesson[] = [
   ...firstLessons,
   ...continuationLessons,
   ...advancedLessons,
@@ -475,6 +475,13 @@ export const lessons: Lesson[] = [
       tracks.findIndex((t) => t.id === a.track) -
         tracks.findIndex((t) => t.id === b.track) || a.number - b.number,
   );
+import formattedCode from "./formatted-code.json" with { type: "json" };
+// Refreshed from the authored lessons by scripts/format-content.mjs before dev/build/tests.
+const formatted = formattedCode as Record<string, Partial<Lesson>>;
+export const lessons: Lesson[] = rawLessons.map((lesson) => ({
+  ...lesson,
+  ...formatted[lesson.id],
+}));
 export function getTrack(id: string) {
   return tracks.find((t) => t.id === id);
 }

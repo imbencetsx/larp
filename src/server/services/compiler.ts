@@ -1,6 +1,7 @@
 import ts from "typescript";
 import { getLesson } from "~/content/curriculum";
 import { readFiles } from "~/lib/workspace";
+import { htmlDocument } from "~/lib/html-document";
 
 const normalize = (path: string) => {
   const parts: string[] = [];
@@ -128,8 +129,8 @@ export function exportProject(lessonId: string, saved: string) {
   const htmlName = Object.keys(files).find((name) => name.endsWith(".html"));
   const cssName = Object.keys(files).find((name) => name.endsWith(".css"));
   if (htmlName) {
-    let html = files[htmlName]!;
-    if (cssName) html = `<link rel="stylesheet" href="${cssName}">\n` + html;
+    const html = files[htmlName]!;
+    let script: string | undefined;
     if (lesson.track === "javascript" || lesson.track === "typescript") {
       const jsName = lesson.filename.replace(/\.ts$/, ".js");
       if (lesson.track === "typescript")
@@ -139,9 +140,14 @@ export function exportProject(lessonId: string, saved: string) {
             module: ts.ModuleKind.None,
           },
         }).outputText;
-      html += `\n<script src="${jsName}"></script>`;
+      script = jsName;
     }
-    files[htmlName] = html;
+    files[htmlName] = htmlDocument(
+      html,
+      lesson.title,
+      cssName ?? "styles.css",
+      script,
+    );
   }
   return files;
 }

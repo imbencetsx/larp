@@ -13,13 +13,32 @@ import {
   runPlayground,
   simulateComponent,
   runLesson,
+  exportProject,
+  simulateBrowser,
 } from "~/server/services/validate";
 import { getLesson } from "~/content/curriculum";
-import { exportProject } from "~/server/services/compiler";
+import { MAX_PREVIEW_EVENTS } from "~/lib/simulation";
 const lessonInput = z.object({
   lessonId: z.string().refine((id) => Boolean(getLesson(id)), "Unknown lesson"),
   code: z.string().max(60000),
 });
+const previewEvents = z
+  .array(
+    z.object({
+      id: z.number().int().min(0).max(100000),
+      type: z.enum(["click", "submit", "input", "change"]),
+      fields: z
+        .array(
+          z.object({
+            id: z.number().int().min(0).max(100000),
+            value: z.string().max(2000),
+            checked: z.boolean(),
+          }),
+        )
+        .max(100),
+    }),
+  )
+  .max(MAX_PREVIEW_EVENTS);
 const initialized = learnerProcedure.use(async ({ ctx, next }) => {
   await ensureLearner(ctx.learnerId, ctx.userId ? ctx.guestId : null);
   return next({ ctx });
@@ -76,10 +95,13 @@ export const learningRouter = createTRPCRouter({
     .input(
       z.object({
         track: z.enum(["html", "css", "javascript", "typescript", "nextjs"]),
-        code: z.string().max(12000),
+        code: z.string().max(60000),
+        events: previewEvents.default([]),
       }),
     )
-    .mutation(({ input }) => runPlayground(input.track, input.code)),
+    .mutation(({ input }) =>
+      runPlayground(input.track, input.code, input.events),
+    ),
   settings: initialized
     .input(
       z.object({
@@ -118,6 +140,15 @@ export const learningRouter = createTRPCRouter({
     )
     .mutation(({ input }) =>
       simulateComponent(input.code, input.clicks, input.lessonId),
+    ),
+  browserSimulate: initialized
+    .input(
+      lessonInput.extend({
+        events: previewEvents,
+      }),
+    )
+    .mutation(({ input }) =>
+      simulateBrowser(input.lessonId, input.code, input.events),
     ),
   account: protectedProcedure.query(({ ctx }) => ({ userId: ctx.userId })),
 });
