@@ -10,6 +10,8 @@ export const env = createEnv({
     DATABASE_URL: z.string().min(1).default("file:./db.sqlite"),
     DATABASE_AUTH_TOKEN: z.string().optional(),
     CLERK_SECRET_KEY: z.string().optional(),
+    GUEST_SESSION_SECRET: z.string().min(32).optional(),
+    APP_ORIGIN: z.string().url().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -32,6 +34,8 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+    GUEST_SESSION_SECRET: process.env.GUEST_SESSION_SECRET,
+    APP_ORIGIN: process.env.APP_ORIGIN,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     NODE_ENV: process.env.NODE_ENV,

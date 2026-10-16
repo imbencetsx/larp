@@ -1,3 +1,4 @@
+import { fillCode, expectCodeValue } from "./editor-helpers";
 import { test, expect } from "@playwright/test";
 import { getLesson } from "../../src/content/curriculum";
 
@@ -6,15 +7,17 @@ test("companion files persist and Run does not complete a CSS lesson", async ({
 }) => {
   const lesson = getLesson("css-13")!;
   await page.goto("/learn/css/13");
-  await page
-    .getByRole("textbox", { name: "Code editor for workshop.css" })
-    .fill(lesson.solution);
+  await fillCode(
+    page.getByRole("textbox", { name: "Code editor for workshop.css" }),
+    lesson.solution,
+  );
   await page.getByRole("tab", { name: "index.html", exact: true }).click();
   const html =
     '<main><h1>My custom gallery</h1><div class="gallery"><article class="plant">A custom card</article></div></main>';
-  await page
-    .getByRole("textbox", { name: "Code editor for index.html" })
-    .fill(html);
+  await fillCode(
+    page.getByRole("textbox", { name: "Code editor for index.html" }),
+    html,
+  );
   await page.getByRole("button", { name: "Run", exact: true }).click();
   await expect(
     page.getByText("Preview ready. Submit to check your work."),
@@ -27,9 +30,10 @@ test("companion files persist and Run does not complete a CSS lesson", async ({
   ).toBeVisible();
   await page.reload();
   await page.getByRole("tab", { name: "index.html", exact: true }).click();
-  await expect(
+  await expectCodeValue(
     page.getByRole("textbox", { name: "Code editor for index.html" }),
-  ).toHaveValue(html);
+    html,
+  );
   await page.getByRole("button", { name: "Submit", exact: true }).click();
   await expect(page.getByText("All checks passed.")).toBeVisible();
 });
@@ -83,9 +87,10 @@ test("the JavaScript capstone is a working application in the isolated preview",
 }) => {
   const lesson = getLesson("javascript-31")!;
   await page.goto("/learn/javascript/31");
-  await page
-    .getByRole("textbox", { name: "Code editor for tasks.js" })
-    .fill(lesson.solution);
+  await fillCode(
+    page.getByRole("textbox", { name: "Code editor for tasks.js" }),
+    lesson.solution,
+  );
   await page.getByRole("button", { name: "Run", exact: true }).click();
   const app = page.frameLocator('iframe[title="Sandboxed code preview"]');
   await app.getByLabel("New task").fill("Build a real app");
@@ -112,9 +117,10 @@ test("a multi-file Next.js app simulates imports and exports a complete ZIP", as
 }) => {
   const lesson = getLesson("nextjs-31")!;
   await page.goto("/learn/nextjs/31");
-  await page
-    .getByRole("textbox", { name: "Code editor for app/page.tsx" })
-    .fill(lesson.solution);
+  await fillCode(
+    page.getByRole("textbox", { name: "Code editor for app/page.tsx" }),
+    lesson.solution,
+  );
   await page.getByRole("tab", { name: "lib/tasks.ts", exact: true }).click();
   await expect(
     page.getByRole("textbox", { name: "Code editor for lib/tasks.ts" }),

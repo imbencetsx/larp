@@ -4,21 +4,32 @@ import {
   type NextRequest,
   type NextFetchEvent,
 } from "next/server";
+import { signGuest, verifyGuest } from "~/lib/guest-session";
+import { contentPolicy } from "~/lib/content-policy";
 const configured = Boolean(
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY,
 );
-function guestSession(request: NextRequest) {
-  let guest = request.cookies.get("larp_guest")?.value;
-  if (!guest || !/^[0-9a-f-]{36}$/.test(guest)) guest = crypto.randomUUID();
-  request.cookies.set("larp_guest", guest);
+async function guestSession(request: NextRequest) {
+  const original = request.cookies.get("larp_guest")?.value;
+  const guest = await verifyGuest(original);
+  const token = guest ? original! : await signGuest(crypto.randomUUID());
+  request.cookies.set("larp_guest", token);
+  const nonce = btoa(
+    String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))),
+  );
+  const policy = contentPolicy(nonce);
+  request.headers.set("x-nonce", nonce);
+  request.headers.set("Content-Security-Policy", policy);
   const response = NextResponse.next({ request: { headers: request.headers } });
-  response.cookies.set("larp_guest", guest, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: request.nextUrl.protocol === "https:",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  response.headers.set("Content-Security-Policy", policy);
+  if (!guest)
+    response.cookies.set("larp_guest", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: request.nextUrl.protocol === "https:",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
   return response;
 }
 const withClerk = clerkMiddleware((_auth, request) => guestSession(request));

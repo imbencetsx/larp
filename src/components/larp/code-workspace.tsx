@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardHeader, CardPanel, CardFooter } from "~/components/ui/card";
-import { Textarea } from "~/components/ui/textarea";
+import { SourceEditor } from "./source-editor";
 import { Alert, AlertTitle, AlertDescription } from "~/components/ui/alert";
 import {
   Empty,
@@ -28,6 +28,9 @@ import {
 import { Tabs, TabsList, TabsPanel, TabsTab } from "~/components/ui/tabs";
 import { api } from "~/trpc/react";
 import type { RunResult } from "~/server/services/validate";
+import { previewDocument, isPreviewEvent } from "~/lib/preview-document";
+import { MAX_PREVIEW_EVENTS, type PreviewEvent } from "~/lib/simulation";
+import type { TrackId } from "~/content/curriculum";
 export function CopyButton({ text }: { text: string }) {
   const [state, setState] = useState<"idle" | "copied" | "error">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -122,6 +125,7 @@ export function Editor({
   onFileChange,
   saveStatus = "",
   onBlur,
+  maxLength = 30000,
 }: {
   code: string;
   onChange: (s: string) => void;
@@ -135,8 +139,8 @@ export function Editor({
   onFileChange?: (filename: string) => void;
   saveStatus?: string;
   onBlur?: () => void;
+  maxLength?: number;
 }) {
-  const gutter = useRef<HTMLDivElement>(null);
   return (
     <Card render={<section />} className="editor-card" aria-label="Code editor">
       <CardHeader className="editor-toolbar border-b">
@@ -173,38 +177,20 @@ export function Editor({
         </Tabs>
       )}
       <CardPanel className="code-editor-wrapper">
-        <div className="line-numbers" aria-hidden="true" ref={gutter}>
-          {Array.from(
-            { length: Math.max(14, code.split("\n").length) },
-            (_, i) => (
-              <span key={i}>{i + 1}</span>
-            ),
-          )}
-        </div>
-        <Textarea
-          className="code-control"
-          data-code-editor="true"
-          readOnly={running || submitting}
-          aria-label={`Code editor for ${filename}`}
-          spellCheck={false}
-          autoCapitalize="off"
-          autoCorrect="off"
-          value={code}
-          maxLength={30000}
-          onChange={(e) => onChange(e.target.value)}
+        <SourceEditor
+          code={code}
+          filename={filename}
+          onChange={onChange}
+          onRun={onRun}
+          onSubmit={onSubmit}
           onBlur={onBlur}
-          onScroll={(event) => {
-            if (gutter.current)
-              gutter.current.scrollTop = event.currentTarget.scrollTop;
-          }}
-          onKeyDown={(e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-              e.preventDefault();
-              if (e.shiftKey && onSubmit) onSubmit();
-              else onRun();
-            }
-          }}
+          readOnly={running || submitting}
+          maxLength={maxLength}
         />
+        <span id="editor-keyboard-help" className="sr-only">
+          Tab indents. Shift+Tab unindents. Press Escape, then Tab to leave the
+          editor. Control or Command+Enter runs your code; add Shift to submit.
+        </span>
       </CardPanel>
       <CardFooter className="editor-bottom border-t">
         <span className="save-status" role="status">
@@ -249,17 +235,6 @@ export function Editor({
 }
 const fixture =
   '<div class="plant"><h2>A little fern</h2><p>Give me a little room to grow.</p></div>';
-export function previewDocument(
-  html: string,
-  css = "",
-  script?: string | null,
-) {
-  const styles = css ? `<style>${css.replace(/<\/style/gi, " ")}</style>` : "";
-  const scripts = script
-    ? `<script>${script.replace(/<\/script/gi, "<\\/script")}</script>`
-    : "";
-  return `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'; script-src ${script ? "'unsafe-inline'" : "'none'"}">${styles}</head><body>${html}${scripts}</body></html>`;
-}
 export function Preview({
   track,
   code,
@@ -271,6 +246,7 @@ export function Preview({
   stylesheet,
   serializedCode,
   lessonId,
+  playgroundTrack,
 }: {
   track: string;
   code: string;
@@ -282,6 +258,7 @@ export function Preview({
   stylesheet?: string;
   serializedCode?: string;
   lessonId?: string;
+  playgroundTrack?: TrackId;
 }) {
   const [live, setLive] = useState(code);
   const [clicks, setClicks] = useState(0);
@@ -322,16 +299,128 @@ export function Preview({
   useEffect(() => {
     if (result?.error) setTab("console");
     else if (withChecks && result && !result.passed) setTab("checks");
-    else if (result?.preview || result?.browserCode) setTab("preview");
+    else if (result?.preview || result?.browserApp) setTab("preview");
   }, [result, withChecks]);
-  const html =
-    track === "html"
+  const frame = useRef<HTMLIFrameElement>(null);
+  const channel = useRef(crypto.randomUUID());
+  const history = useRef<PreviewEvent[]>([]);
+  const [browserPreview, setBrowserPreview] = useState<RunResult | null>(null);
+  const [previewHTML, setPreviewHTML] = useState("");
+  const [focusId, setFocusId] = useState<number | undefined>();
+  const { mutateAsync: simulateBrowser } =
+    api.learning.browserSimulate.useMutation();
+  const { mutateAsync: simulatePlayground } =
+    api.learning.playground.useMutation();
+  const previewBusy = useRef(false);
+  const generation = useRef(0);
+  useEffect(() => {
+    generation.current++;
+    history.current = [];
+    setBrowserPreview(null);
+    setFocusId(undefined);
+  }, [code, result, serializedCode]);
+  useEffect(() => {
+    const receive = async (event: MessageEvent<unknown>) => {
+      const message = event.data as {
+        kind?: unknown;
+        channel?: unknown;
+        event?: unknown;
+      } | null;
+      if (
+        event.source !== frame.current?.contentWindow ||
+        event.origin !== "null" ||
+        message?.kind !== "larp-preview" ||
+        message?.channel !== channel.current ||
+        !isPreviewEvent(message?.event) ||
+        (!lessonId && !playgroundTrack) ||
+        !result?.browserApp ||
+        previewBusy.current
+      )
+        return;
+      if (history.current.length >= MAX_PREVIEW_EVENTS) {
+        setBrowserPreview({
+          passed: false,
+          checks: [],
+          output: [],
+          preview: null,
+          error: "Preview limit reached. Run again to restart the app.",
+        });
+        return;
+      }
+      previewBusy.current = true;
+      const requestGeneration = generation.current;
+      const action = message.event;
+      const events = [...history.current, action];
+      try {
+        const output = playgroundTrack
+          ? await simulatePlayground({
+              track: playgroundTrack,
+              code: serializedCode ?? code,
+              events,
+            })
+          : await simulateBrowser({
+              lessonId: lessonId!,
+              code: serializedCode ?? code,
+              events,
+            });
+        if (requestGeneration !== generation.current) return;
+        if (!output.error) {
+          history.current = events;
+          setFocusId(action.type === "input" ? action.id : undefined);
+        }
+        setBrowserPreview(output);
+      } catch {
+        if (requestGeneration !== generation.current) return;
+        setBrowserPreview({
+          passed: false,
+          checks: [],
+          output: [],
+          preview: null,
+          error: "Could not update the preview. Run again to retry.",
+        });
+      } finally {
+        previewBusy.current = false;
+      }
+    };
+    const listener = (event: MessageEvent<unknown>) => {
+      void receive(event);
+    };
+    window.addEventListener("message", listener);
+    return () => window.removeEventListener("message", listener);
+  }, [
+    simulateBrowser,
+    simulatePlayground,
+    code,
+    lessonId,
+    result,
+    serializedCode,
+    playgroundTrack,
+  ]);
+  const consoleResult = browserPreview ?? simulated ?? result;
+  const html = playgroundTrack
+    ? (browserPreview?.preview ??
+      simulated?.preview ??
+      result?.preview ??
+      lessonFixture)
+    : track === "html"
       ? live
       : track === "css"
         ? (lessonFixture ?? fixture)
-        : result?.browserCode
-          ? lessonFixture
-          : (simulated?.preview ?? result?.preview);
+        : (browserPreview?.preview ?? simulated?.preview ?? result?.preview);
+  useEffect(() => {
+    if (!html) {
+      setPreviewHTML("");
+      return;
+    }
+    setPreviewHTML(
+      previewDocument(html, track === "css" ? live : (stylesheet ?? ""), {
+        channel: channel.current,
+        origin: window.location.origin,
+        interactive: !!result?.browserApp,
+        focusId,
+      }),
+    );
+  }, [html, track, live, stylesheet, result?.browserApp, focusId]);
   return (
     <Card
       render={<section />}
@@ -348,7 +437,7 @@ export function Preview({
             <TabsTab value="console">
               <Terminal aria-hidden="true" />
               Console
-              {result?.error && (
+              {consoleResult?.error && (
                 <span className="bg-destructive size-1.5 rounded-full" />
               )}
             </TabsTab>
@@ -364,12 +453,11 @@ export function Preview({
             <iframe
               title="Sandboxed code preview"
               className="preview-frame rounded-lg border"
-              sandbox={result?.browserCode ? "allow-scripts allow-forms" : "allow-forms"}
-              srcDoc={previewDocument(
-                html,
-                track === "css" ? live : (stylesheet ?? ""),
-                result?.browserCode,
-              )}
+              ref={frame}
+              sandbox="allow-scripts allow-forms"
+              referrerPolicy="no-referrer"
+              allow="camera 'none'; microphone 'none'; geolocation 'none'; payment 'none'; clipboard-read 'none'; clipboard-write 'none'"
+              srcDoc={previewHTML}
             />
           ) : (
             <Empty className="preview-placeholder">
@@ -401,25 +489,27 @@ export function Preview({
               <span className="console-empty">Running your code…</span>
             ) : (
               <>
-                {!result && (
+                {!consoleResult && (
                   <span className="console-empty">Run code to see output.</span>
                 )}
-                {result?.output.map((line, i) => (
+                {consoleResult?.output.map((line, i) => (
                   <div key={i} className="console-line">
                     {line}
                   </div>
                 ))}
-                {result && !result.output.length && !result.error && (
-                  <span className="console-empty">
-                    Code ran without errors.{" "}
-                    {track === "html" || track === "css"
-                      ? "Open Preview to see your page."
-                      : "Use console.log() to print a value."}
-                  </span>
-                )}
-                {result?.error && (
+                {consoleResult &&
+                  !consoleResult.output.length &&
+                  !consoleResult.error && (
+                    <span className="console-empty">
+                      Code ran without errors.{" "}
+                      {track === "html" || track === "css"
+                        ? "Open Preview to see your page."
+                        : "Use console.log() to print a value."}
+                    </span>
+                  )}
+                {consoleResult?.error && (
                   <Alert variant="error" className="run-error">
-                    <AlertDescription>{result.error}</AlertDescription>
+                    <AlertDescription>{consoleResult.error}</AlertDescription>
                   </Alert>
                 )}
               </>
@@ -456,9 +546,11 @@ export function Preview({
           </Button>
         </div>
       )}
-      {simulated?.error && (
+      {(browserPreview?.error ?? simulated?.error) && (
         <Alert variant="error" className="run-error m-3 w-auto">
-          <AlertDescription>{simulated.error}</AlertDescription>
+          <AlertDescription>
+            {browserPreview?.error ?? simulated?.error}
+          </AlertDescription>
         </Alert>
       )}
       {simulation && (
