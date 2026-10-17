@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SignIn, SignUp } from "@clerk/nextjs";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
 import { Button } from "~/components/ui/button";
 import { Card, CardPanel } from "~/components/ui/card";
 import { authConfigured } from "~/server/auth";

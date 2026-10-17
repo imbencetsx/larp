@@ -124,10 +124,9 @@ const firstLessons: Lesson[] = [
       "Tags wrap content in angle brackets. Most have an opening tag and a closing tag. The head holds information about the page; the body holds what your visitors see.",
       "Start with <!DOCTYPE html> so the browser uses modern HTML. Give your page a title inside head, then add a heading inside body.",
     ],
-    example:
-      '<!DOCTYPE html>\n<html lang="en">\n  <head>\n    <title>My first page</title>\n  </head>\n  <body>\n    <h1>Hello, world!</h1>\n  </body>\n</html>',
+    example: "<p>A short note.</p>",
     exampleNote:
-      "The title appears in the browser tab. The h1 appears on the page.",
+      "An opening tag starts an element; the matching closing tag ends it. Apply that pattern to the elements requested in the task.",
     task: "Plant your first idea. Create an HTML document with a page title and a visible main heading that says Hello, LARP!",
     requirements: [
       "Declare the HTML doctype",
@@ -139,8 +138,8 @@ const firstLessons: Lesson[] = [
     solution:
       '<!DOCTYPE html>\n<html lang="en">\n  <head>\n    <title>My LARP garden</title>\n  </head>\n  <body>\n    <h1>Hello, LARP!</h1>\n  </body>\n</html>',
     hints: [
-      "A title uses <title>Your title</title> inside the head element.",
-      "Inside body, add <h1>Hello, LARP!</h1>.",
+      "The browser-tab title belongs in the document’s head; visible page content belongs in its body.",
+      "Use the main-heading element for the greeting. Check its text against the task, including punctuation.",
     ],
     recap:
       "HTML gives a page structure. The head describes it, and the body contains its visible content.",
@@ -159,9 +158,9 @@ const firstLessons: Lesson[] = [
       "An anchor element, a, creates a link. Its href attribute is the destination; the text between its tags tells people where it goes.",
       "Useful link text describes the destination. ‘Explore the garden’ is more helpful than ‘Click here’.",
     ],
-    example:
-      '<h1>A small garden</h1>\n<h2>What is growing?</h2>\n<p>One little idea, every day.</p>\n<a href="https://developer.mozilla.org">Explore web docs</a>',
-    exampleNote: "Attributes such as href add information to an element.",
+    example: '<a href="https://example.com">Visit the library</a>',
+    exampleNote:
+      "The href is the destination, and the text between the tags describes the link. Build the rest of the journal yourself.",
     task: "Make a tiny garden journal with a main heading, a section heading, a paragraph, and a link to MDN at https://developer.mozilla.org.",
     requirements: [
       "Add a non-empty h1 and h2",
@@ -173,8 +172,8 @@ const firstLessons: Lesson[] = [
     solution:
       '<h1>My garden journal</h1>\n<h2>Day one</h2>\n<p>Today I planted my first seed of code.</p>\n<a href="https://developer.mozilla.org">Explore web documentation</a>',
     hints: [
-      "Try <h2>Day one</h2> followed by a p element.",
-      'Use <a href="https://developer.mozilla.org">Explore web documentation</a>.',
+      "Choose heading levels that show the journal’s main topic and its section.",
+      "An anchor needs a destination attribute and meaningful link text. Use the destination from the task.",
     ],
     recap:
       "Headings organize ideas, paragraphs explain them, and anchors connect them to the wider web.",
@@ -193,9 +192,10 @@ const firstLessons: Lesson[] = [
       "A rule has a selector followed by curly braces. Inside, each declaration pairs a property with a value, separated by a colon.",
       'A class selector starts with a dot. The selector .plant matches an element with class="plant". Let’s give our plant a little color.',
     ],
-    example: ".plant {\n  color: green;\n  background-color: #eef4e8;\n}",
+    example:
+      ".notice {\n  color: navy;\n  /* Add another declaration here. */\n}",
     exampleNote:
-      "A semicolon separates declarations. The dot belongs in CSS, not in the HTML class name.",
+      "A declaration pairs a property with a value. Choose the selector, properties, and values from your task.",
     task: "Style the .plant card. Make its text green and its background #eef4e8. The preview already contains the HTML.",
     requirements: [
       "Select .plant",
@@ -205,8 +205,8 @@ const firstLessons: Lesson[] = [
     starter: ".plant {\n  /* Give this plant its colors */\n}",
     solution: ".plant {\n  color: green;\n  background-color: #eef4e8;\n}",
     hints: [
-      "Write declarations inside the .plant rule.",
-      "Add color: green; and background-color: #eef4e8;",
+      "Find the class used by the preview card and write declarations inside its rule.",
+      "Text color and background color use separate properties. Match their values to the requirements.",
     ],
     recap:
       "Selectors choose elements. Declarations describe how those elements should look.",
@@ -225,8 +225,9 @@ const firstLessons: Lesson[] = [
       "With box-sizing: border-box, a declared width includes padding and borders. This makes layouts much easier to predict.",
     ],
     example:
-      ".plant {\n  box-sizing: border-box;\n  width: 240px;\n  padding: 24px;\n  margin: 16px;\n  border: 2px solid #52734d;\n}",
-    exampleNote: "Padding is inside the border. Margin is outside it.",
+      ".note {\n  padding: 8px;\n  /* Which property creates space outside the box? */\n}",
+    exampleNote:
+      "Padding creates inner space. Work out the remaining box-model properties and sizes from the requirements.",
     task: "Give .plant a 240px total width, 24px of padding, 16px of margin, and a 2px solid border. Use border-box sizing.",
     requirements: [
       "Set box-sizing to border-box and width to 240px",
@@ -238,8 +239,8 @@ const firstLessons: Lesson[] = [
     solution:
       ".plant {\n  background: #eef4e8;\n  box-sizing: border-box;\n  width: 240px;\n  padding: 24px;\n  margin: 16px;\n  border: 2px solid #52734d;\n}",
     hints: [
-      "Use padding for space inside, and margin for space outside.",
-      "Add box-sizing: border-box; width: 240px; padding: 24px; margin: 16px; border: 2px solid green;",
+      "Padding adds space inside a box; margin adds space outside it.",
+      "Check which sizing mode includes padding and borders in the declared width. A border needs a width, a style, and a color.",
     ],
     recap:
       "The box model controls space. Border-box keeps an element’s total width predictable.",
@@ -258,8 +259,9 @@ const firstLessons: Lesson[] = [
       "console.log() prints values to the console. Template literals use backticks and ${...} to put values inside a string.",
     ],
     example:
-      'const plant = "Fern";\nlet leaves = 3;\nleaves = leaves + 1;\nconsole.log(`${plant} has ${leaves} leaves.`);',
-    exampleNote: "The console prints: Fern has 4 leaves.",
+      'const city = "Oslo";\n// How would you print a message using this value?',
+    exampleNote:
+      "Text values use quotes. Store the lesson’s values in your own variables, then build the requested message.",
     task: "Create a variable called plant with the value Fern and a variable called leaves with the number 4. Print Fern has 4 leaves. to the console.",
     requirements: [
       "plant equals the string Fern",
@@ -270,8 +272,8 @@ const firstLessons: Lesson[] = [
     solution:
       'const plant = "Fern";\nconst leaves = 4;\nconsole.log(`${plant} has ${leaves} leaves.`);',
     hints: [
-      'Start with const plant = "Fern"; and const leaves = 4;',
-      "Use console.log(`${plant} has ${leaves} leaves.`);",
+      "Declare one variable for the plant’s text name and another for its numeric leaf count.",
+      "Build the message from those variables, then send it to the console. Check spaces and punctuation.",
     ],
     recap:
       "Variables name values. Strings hold text, numbers hold quantities, and console.log helps you see results.",
@@ -290,9 +292,9 @@ const firstLessons: Lesson[] = [
       "Try your function with different values. Checking both sides of a condition catches mistakes that one example might miss.",
     ],
     example:
-      'function lightAdvice(hours) {\n  if (hours < 4) {\n    return "More sunshine";\n  }\n  return "Looking bright";\n}\nconsole.log(lightAdvice(2));',
+      "function greet(name) {\n  return `Hi, ${name}`;\n}\n// Where would a condition go if the result depended on the input?",
     exampleNote:
-      "Calling a function runs its instructions with the supplied input.",
+      "A parameter supplies the input and return supplies the result. Decide how your function should handle each side of the boundary.",
     task: 'Write a function called waterPlant(moisture). Return "Water me" when moisture is less than 30; otherwise return "I am happy". Log a sample call.',
     requirements: [
       "waterPlant is callable",
@@ -304,8 +306,8 @@ const firstLessons: Lesson[] = [
     solution:
       'function waterPlant(moisture) {\n  if (moisture < 30) {\n    return "Water me";\n  }\n  return "I am happy";\n}\n\nconsole.log(waterPlant(15));',
     hints: [
-      'Use if (moisture < 30) and return "Water me" inside it.',
-      'After the if block, return "I am happy". Remember the boundary value 30.',
+      "Compare the function’s input with the task’s threshold and choose a return value for each outcome.",
+      "Test a value below the threshold, the threshold itself, and a value above it. Every path should return a result.",
     ],
     recap:
       "Functions make behavior reusable. Conditions let the same function respond to different inputs.",
@@ -324,8 +326,9 @@ const firstLessons: Lesson[] = [
       "Types disappear when TypeScript compiles to JavaScript. They help you while writing code without changing how values work at runtime.",
     ],
     example:
-      'const plantName: string = "Fern";\nconst leafCount: number = 4;\nconst isHealthy: boolean = true;\nconsole.log(plantName, leafCount, isHealthy);',
-    exampleNote: 'Assigning "four" to a number variable produces a diagnostic.',
+      "const distance: number = 12;\n// A value must match the type written after the colon.",
+    exampleNote:
+      "Inspect each annotation in the editor, then choose the right kind of value. Keep numbers and booleans distinct from strings.",
     task: "Fix the types below. Use explicit string, number, and boolean annotations. Set plantName to Fern, leafCount to 4, and isHealthy to true.",
     requirements: [
       "plantName is explicitly typed string and equals Fern",
@@ -337,8 +340,8 @@ const firstLessons: Lesson[] = [
     solution:
       'const plantName: string = "Fern";\nconst leafCount: number = 4;\nconst isHealthy: boolean = true;\n\nconsole.log(plantName, leafCount, isHealthy);',
     hints: [
-      'A string value needs quotes: "Fern". A number does not: 4.',
-      "Use the boolean true without quotes. Keep the explicit type annotations.",
+      "Compare the kind of each value with its annotation. Quoted digits are still text.",
+      "A boolean has two possible values and uses neither quotes nor a numeric substitute.",
     ],
     recap:
       "TypeScript checks your values before execution. Type annotations communicate intent and catch mismatches.",
@@ -357,9 +360,9 @@ const firstLessons: Lesson[] = [
       "A function’s return type appears after its parameter list. Together, parameter and return types make its contract clear.",
     ],
     example:
-      'type Seed = { name: string; days: number };\n\nfunction describe(seed: Seed): string {\n  return `${seed.name}: ${seed.days} days`;\n}\n\nconsole.log(describe({ name: "Basil", days: 7 }));',
+      "type Address = {\n  street: string;\n  postcode: string;\n};\n// How would a function accept an Address as its parameter?",
     exampleNote:
-      "TypeScript will flag a missing property or an incorrect property type.",
+      "A type alias describes an object’s properties. Apply that idea to your own type and function signature.",
     task: 'Define a Plant type with name: string and leaves: number. Write describePlant(plant: Plant): string to return "Fern has 4 leaves" for { name: "Fern", leaves: 4 }.',
     requirements: [
       "Define a Plant object type with name and leaves",
@@ -371,8 +374,8 @@ const firstLessons: Lesson[] = [
     solution:
       'type Plant = {\n  name: string;\n  leaves: number;\n};\n\nfunction describePlant(plant: Plant): string {\n  return `${plant.name} has ${plant.leaves} leaves`;\n}\n\nconsole.log(describePlant({ name: "Fern", leaves: 4 }));',
     hints: [
-      "Start with type Plant = { name: string; leaves: number };",
-      "Annotate the function as describePlant(plant: Plant): string, then use a template literal.",
+      "Describe each property in an object type, then use that type on the function’s parameter.",
+      "Build the returned sentence from the parameter’s properties and give the function an explicit return type.",
     ],
     recap:
       "Object types model data. Typed functions document which data they accept and which results they return.",
@@ -391,9 +394,9 @@ const firstLessons: Lesson[] = [
       "A page exports its component as default. A layout wraps pages and stays shared across routes. The root layout contains the html and body elements.",
     ],
     example:
-      "export default function GardenPage() {\n  return (\n    <main>\n      <h1>My garden</h1>\n      <p>A place for growing ideas.</p>\n    </main>\n  );\n}",
+      "export default function NotesPage() {\n  return (\n    <section>\n      {/* Add content for this route here. */}\n    </section>\n  );\n}",
     exampleNote:
-      "Saved as app/garden/page.tsx, this component is the /garden route.",
+      "A page file exports its route component. Choose the semantic elements and heading required for your garden page.",
     task: "In app/garden/page.tsx, default-export a function component that returns a main element containing an h1 with the text My garden.",
     requirements: [
       "Default-export a function component",
@@ -405,8 +408,8 @@ const firstLessons: Lesson[] = [
     solution:
       "export default function GardenPage() {\n  return (\n    <main>\n      <h1>My garden</h1>\n    </main>\n  );\n}",
     hints: [
-      "Keep export default on the function declaration.",
-      "Replace the comment with <h1>My garden</h1>.",
+      "Keep the default export so the router can find the page component.",
+      "Inside the page’s main region, add the main-heading element and use the heading text requested by the task.",
     ],
     recap:
       "Folders define routes, page files define route content, and layouts provide a shared wrapper.",
@@ -425,9 +428,9 @@ const firstLessons: Lesson[] = [
       "useState holds a value between renders. Its setter schedules an update. A functional update like setDrops(d => d + 1) uses the latest state.",
     ],
     example:
-      '"use client";\n\nimport { useState } from "react";\n\nexport default function Counter() {\n  const [count, setCount] = useState(0);\n  return <button onClick={() => setCount(c => c + 1)}>\n    {count} visits\n  </button>;\n}',
+      '"use client";\n\nimport { useState } from "react";\n\n// Inside your component, what value needs to survive a re-render?\n// What event should change that value?',
     exampleNote:
-      "The directive marks a client boundary; it is not needed on every file in an app.",
+      "A client boundary enables interactivity. You still need to create the state, render its value, and connect an event handler.",
     task: "Create a client WaterButton component. Import useState, start drops at 0, and render a button that adds 1 drop on each click. Display the current drops inside the button.",
     requirements: [
       'Begin with "use client"',
@@ -439,8 +442,8 @@ const firstLessons: Lesson[] = [
     solution:
       '"use client";\n\nimport { useState } from "react";\n\nexport default function WaterButton() {\n  const [drops, setDrops] = useState(0);\n  return (\n    <button onClick={() => setDrops(d => d + 1)}>\n      Water plant: {drops} drops\n    </button>\n  );\n}',
     hints: [
-      'Start with "use client"; and import { useState } from "react";',
-      "Add const [drops, setDrops] = useState(0); then onClick={() => setDrops(d => d + 1)} on your button. Display {drops}.",
+      "State and event handlers need a client boundary. Import the state hook before using it in your component.",
+      "Store the drop count in state. Connect the button click to a functional state update, and render the current count in the button.",
     ],
     recap:
       "Server Components handle server-side rendering and data. Client Components add state and event-driven interaction.",

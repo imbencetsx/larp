@@ -1,15 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Lightbulb,
-  Download,
-} from "lucide-react";
+import { ArrowLeft } from "pixelarticons/react/ArrowLeft.js";
+import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
+import { CheckboxOn as CheckCircle2 } from "pixelarticons/react/CheckboxOn.js";
+import { ChevronLeft } from "pixelarticons/react/ChevronLeft.js";
+import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
+import { Lightbulb } from "pixelarticons/react/Lightbulb.js";
+import { Download } from "pixelarticons/react/Download.js";
 import { Button } from "~/components/ui/button";
 import { Card, CardHeader } from "~/components/ui/card";
 import { Alert, AlertDescription } from "~/components/ui/alert";
@@ -28,11 +26,16 @@ import {
 import { useMediaQuery } from "~/hooks/use-media-query";
 import { api } from "~/trpc/react";
 import { lessons, tracks, type Lesson } from "~/content/curriculum";
+import { getCodeHelp } from "~/content/code-help";
+import {
+  getCodeHelpExamples,
+  trackIntroductions,
+} from "~/content/code-help-examples";
 import { useLearning } from "./learning-provider";
 import { GrowingPlant } from "./growing-plant";
 import { fullBloomStage, getCourseGrowth } from "~/lib/garden";
 import { Badge } from "~/components/ui/badge";
-import { Editor, Preview, Snippet } from "./code-workspace";
+import { Editor, Preview } from "./code-workspace";
 import type { RunResult } from "~/server/services/validate";
 import { initialFiles, readFiles, saveFiles } from "~/lib/workspace";
 import { downloadProject } from "~/lib/download-project";
@@ -107,6 +110,7 @@ function LessonContent({
     return () => clearTimeout(timer);
   }, [draft, dirty, lesson.id, saveDraft]);
   const track = tracks.find((t) => t.id === lesson.track)!;
+  const codeHelpExamples = getCodeHelpExamples(lesson);
   const next = lessons[lessons.findIndex((l) => l.id === lesson.id) + 1];
   const submitCode = async () => {
     if (busy) return;
@@ -180,7 +184,7 @@ function LessonContent({
           <TabsList size="sm" aria-label="Lesson content">
             <TabsTab value="task">Task</TabsTab>
             <TabsTab value="read">Read</TabsTab>
-            <TabsTab value="example">Example</TabsTab>
+            <TabsTab value="example">Code help</TabsTab>
             {lesson.projectBrief && <TabsTab value="brief">Ship</TabsTab>}
           </TabsList>
         </CardHeader>
@@ -311,9 +315,35 @@ function LessonContent({
           </div>
         </TabsPanel>
         <TabsPanel value="example">
-          <div className="instruction-content example-content">
-            <Snippet code={lesson.example} filename={lesson.filename} />
-            <p className="snippet-note">{lesson.exampleNote}</p>
+          <div className="instruction-content code-help-content">
+            <h2>How to use it</h2>
+            <p className="code-help-intro">
+              {trackIntroductions[lesson.track]}
+            </p>
+            {codeHelpExamples.map(([code, explanation, tryIt], index) => (
+              <section className="code-help-example" key={code}>
+                <h3>
+                  Small example
+                  {codeHelpExamples.length > 1 ? ` ${index + 1}` : ""}
+                </h3>
+                <pre>
+                  <code>{code}</code>
+                </pre>
+                <h4>What each part means</h4>
+                <p>{explanation}</p>
+                <h4>Try it yourself</h4>
+                <p>{tryIt}</p>
+              </section>
+            ))}
+            <h3>Use the idea in this task</h3>
+            <dl className="code-help-blocks">
+              {getCodeHelp(lesson).map(([name, purpose]) => (
+                <div key={name}>
+                  <dt>{name}</dt>
+                  <dd>{purpose}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </TabsPanel>
       </Tabs>

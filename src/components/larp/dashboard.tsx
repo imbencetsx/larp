@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
+import { ExternalLink as ArrowUpRight } from "pixelarticons/react/ExternalLink.js";
 import { Card, CardHeader, CardPanel, CardFooter } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";

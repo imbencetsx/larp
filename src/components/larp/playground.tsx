@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Sprout } from "lucide-react";
+import { Leaf as Sprout } from "pixelarticons/react/Leaf.js";
 import { Button } from "~/components/ui/button";
 import { tracks, type TrackId } from "~/content/curriculum";
 import { api } from "~/trpc/react";

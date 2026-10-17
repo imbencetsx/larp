@@ -222,7 +222,7 @@ export const nextjsLessons = [
     "A route handler is an HTTP boundary",
     [
       "A route.ts file exports methods such as GET and POST. It returns a Response rather than JSX. HTTP status codes communicate whether the request succeeded, failed validation, or lacked permission.",
-      "Parse inputs at the boundary and keep domain logic in a testable helper. The sandbox checks a plain response description instead of starting an HTTP server. The worked example shows how that description maps to Response.json in a real route handler.",
+      "Parse inputs at the boundary and keep domain logic in a testable helper. The sandbox checks a plain response description instead of starting an HTTP server. In a real route handler, map that description to Response.json.",
     ],
     "Export readLimit(raw) returning {status:200,limit} for integers 1–50, and {status:400,error} otherwise.",
     'type LimitResult={status:200;limit:number}|{status:400;error:string};\nexport function readLimit(raw:string):LimitResult{return {status:400,error:"TODO"};}\nexport default function Page(){return <main>Route handler workshop</main>;}',

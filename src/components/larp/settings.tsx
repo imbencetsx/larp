@@ -2,7 +2,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
-import { ArrowUpRight, CheckCircle2, CircleAlert, Save } from "lucide-react";
+import { ExternalLink as ArrowUpRight } from "pixelarticons/react/ExternalLink.js";
+import { CheckboxOn as CheckCircle2 } from "pixelarticons/react/CheckboxOn.js";
+import { SquareAlert as CircleAlert } from "pixelarticons/react/SquareAlert.js";
+import { Save } from "pixelarticons/react/Save.js";
 import { Button } from "~/components/ui/button";
 import { Card, CardHeader, CardTitle, CardPanel } from "~/components/ui/card";
 import { Form } from "~/components/ui/form";

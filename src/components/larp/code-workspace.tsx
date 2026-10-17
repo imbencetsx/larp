@@ -1,19 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Highlight, themes } from "prism-react-renderer";
-import {
-  Check,
-  CheckCircle2,
-  Code2,
-  Copy,
-  FlaskConical,
-  Info,
-  Play,
-  RotateCcw,
-  Save,
-  ShieldCheck,
-  Terminal,
-} from "lucide-react";
+import { Check } from "pixelarticons/react/Check.js";
+import { CheckboxOn as CheckCircle2 } from "pixelarticons/react/CheckboxOn.js";
+import { Code as Code2 } from "pixelarticons/react/Code.js";
+import { Copy } from "pixelarticons/react/Copy.js";
+import { TestTube as FlaskConical } from "pixelarticons/react/TestTube.js";
+import { CircleInfo as Info } from "pixelarticons/react/CircleInfo.js";
+import { Play } from "pixelarticons/react/Play.js";
+import { Reload as RotateCcw } from "pixelarticons/react/Reload.js";
+import { Save } from "pixelarticons/react/Save.js";
+import { Shield as ShieldCheck } from "pixelarticons/react/Shield.js";
+import { Terminal } from "pixelarticons/react/Terminal.js";
 import { Button } from "~/components/ui/button";
 import { Card, CardHeader, CardPanel, CardFooter } from "~/components/ui/card";
 import { SourceEditor } from "./source-editor";

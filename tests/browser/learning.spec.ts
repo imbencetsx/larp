@@ -70,11 +70,9 @@ test("complete the curriculum, preserve progress, and avoid duplicate completion
   expect(errors).toEqual([]);
 });
 
-test("save drafts, use hints, copy snippets, and persist settings", async ({
+test("save drafts, use conceptual code help, and persist settings", async ({
   page,
-  context,
 }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/learn/javascript/1");
   const editor = page.getByRole("textbox", {
     name: "Code editor for garden.js",
@@ -86,15 +84,23 @@ test("save drafts, use hints, copy snippets, and persist settings", async ({
   await expectCodeValue(editor, 'const myDraft = "a little progress";');
   await page.getByRole("button", { name: "Show hint" }).click();
   await expect(page.locator(".hint-text")).toHaveCount(1);
-  await page.getByRole("tab", { name: "Example", exact: true }).click();
-  await page
-    .locator(".snippet")
-    .getByRole("button", { name: "Copy code" })
-    .click();
-  await expect(page.locator(".snippet")).toContainText("Copied!");
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-    lessons.find((l) => l.id === "javascript-1")!.example,
-  );
+  await page.getByRole("tab", { name: "Code help", exact: true }).click();
+  const help = page.locator(".code-help-content");
+  await expect(
+    help.getByRole("heading", { name: "How to use it" }),
+  ).toBeVisible();
+  await expect(help.locator("dt")).toHaveText([
+    "Variables, strings, and numbers",
+    "Template literals and console.log",
+  ]);
+  await expect(help.locator("pre")).toContainText('const city = "Oslo"');
+  await expect(
+    help.getByRole("heading", { name: "What each part means" }),
+  ).toBeVisible();
+  await expect(
+    help.getByRole("heading", { name: "Try it yourself" }),
+  ).toBeVisible();
+  await expect(help.locator(".snippet, button")).toHaveCount(0);
   await page.goto("/settings");
   await page.getByLabel("Your name", { exact: true }).fill("Alex");
   await page.getByLabel("Your plant’s name").fill("Fernanda");
@@ -107,6 +113,26 @@ test("save drafts, use hints, copy snippets, and persist settings", async ({
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Alex");
   await expect(page.locator(".plant-name")).toContainText("Fernanda");
+});
+
+test("beginner HTML help explains literal tags on desktop and mobile", async ({
+  page,
+}) => {
+  await page.goto("/learn/html/1");
+  await page.getByRole("tab", { name: "Code help", exact: true }).click();
+  const help = page.locator(".code-help-content");
+  await expect(help.locator("pre code").nth(1)).toHaveText(
+    "<h1>Weekend notes</h1>",
+  );
+  await expect(help).toContainText("The slash marks the closing tag.");
+  await expect(help).toContainText(
+    "Put visible headings inside body, not head.",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Lesson & hints" }).click();
+  await expect(page.getByRole("dialog").locator("pre code").nth(1)).toHaveText(
+    "<h1>Weekend notes</h1>",
+  );
 });
 
 test("playground reports errors and interrupts loops", async ({ page }) => {

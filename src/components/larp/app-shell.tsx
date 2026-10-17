@@ -3,13 +3,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { UserButton, useUser } from "@clerk/nextjs";
-import {
-  ArrowUpRight,
-  ChevronRight,
-  Menu as MenuIcon,
-  Search,
-  Settings,
-} from "lucide-react";
+import { ExternalLink as ArrowUpRight } from "pixelarticons/react/ExternalLink.js";
+import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
+import { Menu as MenuIcon } from "pixelarticons/react/Menu.js";
+import { Search } from "pixelarticons/react/Search.js";
+import { SettingsCog as Settings } from "pixelarticons/react/SettingsCog.js";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Kbd } from "~/components/ui/kbd";

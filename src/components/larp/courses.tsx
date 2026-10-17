@@ -1,13 +1,11 @@
 "use client";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  ChevronRight,
-  Clock3,
-  Route,
-} from "lucide-react";
+import { ArrowLeft } from "pixelarticons/react/ArrowLeft.js";
+import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
+import { Check } from "pixelarticons/react/Check.js";
+import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
+import { Clock as Clock3 } from "pixelarticons/react/Clock.js";
+import { Map as Route } from "pixelarticons/react/Map.js";
 import { tracks, trackLessons, type Track } from "~/content/curriculum";
 import { Card, CardPanel } from "~/components/ui/card";
 import {

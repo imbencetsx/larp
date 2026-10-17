@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Code2, Sprout } from "lucide-react";
+import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
+import { BookOpen } from "pixelarticons/react/BookOpen.js";
+import { Code as Code2 } from "pixelarticons/react/Code.js";
+import { Leaf as Sprout } from "pixelarticons/react/Leaf.js";
 import { Button } from "~/components/ui/button";
 import { Card, CardPanel } from "~/components/ui/card";
 import { PixelPlant } from "~/components/larp/pixel-art";
