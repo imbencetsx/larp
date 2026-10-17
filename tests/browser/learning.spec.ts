@@ -87,13 +87,20 @@ test("save drafts, use conceptual code help, and persist settings", async ({
   await page.getByRole("tab", { name: "Code help", exact: true }).click();
   const help = page.locator(".code-help-content");
   await expect(
-    help.getByRole("heading", { name: "Building blocks" }),
+    help.getByRole("heading", { name: "How to use it" }),
   ).toBeVisible();
   await expect(help.locator("dt")).toHaveText([
     "Variables, strings, and numbers",
     "Template literals and console.log",
   ]);
-  await expect(help.locator("pre, .snippet, button")).toHaveCount(0);
+  await expect(help.locator("pre")).toContainText('const city = "Oslo"');
+  await expect(
+    help.getByRole("heading", { name: "What each part means" }),
+  ).toBeVisible();
+  await expect(
+    help.getByRole("heading", { name: "Try it yourself" }),
+  ).toBeVisible();
+  await expect(help.locator(".snippet, button")).toHaveCount(0);
   await page.goto("/settings");
   await page.getByLabel("Your name", { exact: true }).fill("Alex");
   await page.getByLabel("Your plant’s name").fill("Fernanda");
@@ -106,6 +113,26 @@ test("save drafts, use conceptual code help, and persist settings", async ({
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Alex");
   await expect(page.locator(".plant-name")).toContainText("Fernanda");
+});
+
+test("beginner HTML help explains literal tags on desktop and mobile", async ({
+  page,
+}) => {
+  await page.goto("/learn/html/1");
+  await page.getByRole("tab", { name: "Code help", exact: true }).click();
+  const help = page.locator(".code-help-content");
+  await expect(help.locator("pre code").nth(1)).toHaveText(
+    "<h1>Weekend notes</h1>",
+  );
+  await expect(help).toContainText("The slash marks the closing tag.");
+  await expect(help).toContainText(
+    "Put visible headings inside body, not head.",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Lesson & hints" }).click();
+  await expect(page.getByRole("dialog").locator("pre code").nth(1)).toHaveText(
+    "<h1>Weekend notes</h1>",
+  );
 });
 
 test("playground reports errors and interrupts loops", async ({ page }) => {

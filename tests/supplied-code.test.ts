@@ -3,11 +3,23 @@ import { lessons, rawLessons } from "~/content/curriculum";
 import { initialFiles, readFiles, saveFiles } from "~/lib/workspace";
 import { initialPlaygroundDrafts } from "~/lib/playground";
 import { getCodeHelp } from "~/content/code-help";
+import {
+  getCodeHelpExamples,
+  trackIntroductions,
+} from "~/content/code-help-examples";
 
 describe("supplied code", () => {
   it("provides named building blocks and prose guidance for every coding lesson", () => {
     for (const lesson of lessons.filter((item) => item.kind !== "quiz")) {
       const blocks = getCodeHelp(lesson);
+      expect(trackIntroductions[lesson.track]).not.toBe("");
+      const examples = getCodeHelpExamples(lesson);
+      expect(examples.length, lesson.id).toBeGreaterThan(0);
+      for (const [code, explanation, tryIt] of examples) {
+        expect(code.trim(), lesson.id).not.toBe("");
+        expect(explanation.trim(), lesson.id).not.toBe("");
+        expect(tryIt.trim(), lesson.id).not.toBe("");
+      }
       expect(blocks.length, lesson.id).toBeGreaterThanOrEqual(2);
       for (const [name, purpose] of blocks) {
         expect(name.trim(), lesson.id).not.toBe("");

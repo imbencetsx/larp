@@ -1303,6 +1303,39 @@
   gap: 20px;
   margin: 24px 0 0;
 }
+.code-help-intro,
+.code-help-example p {
+  margin-top: 12px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.code-help-example {
+  margin-block: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.code-help-example h3 {
+  font-size: 18px;
+}
+.code-help-example h4 {
+  margin: 18px 0 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--foreground);
+}
+.code-help-example pre {
+  margin: 12px 0 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--code);
+  color: var(--foreground);
+  font-size: 12px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .code-help-blocks dt {
   color: var(--foreground);
   font-size: 15px;

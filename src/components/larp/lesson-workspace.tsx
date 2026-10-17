@@ -27,6 +27,10 @@ import { useMediaQuery } from "~/hooks/use-media-query";
 import { api } from "~/trpc/react";
 import { lessons, tracks, type Lesson } from "~/content/curriculum";
 import { getCodeHelp } from "~/content/code-help";
+import {
+  getCodeHelpExamples,
+  trackIntroductions,
+} from "~/content/code-help-examples";
 import { useLearning } from "./learning-provider";
 import { GrowingPlant } from "./growing-plant";
 import { fullBloomStage, getCourseGrowth } from "~/lib/garden";
@@ -106,6 +110,7 @@ function LessonContent({
     return () => clearTimeout(timer);
   }, [draft, dirty, lesson.id, saveDraft]);
   const track = tracks.find((t) => t.id === lesson.track)!;
+  const codeHelpExamples = getCodeHelpExamples(lesson);
   const next = lessons[lessons.findIndex((l) => l.id === lesson.id) + 1];
   const submitCode = async () => {
     if (busy) return;
@@ -311,10 +316,26 @@ function LessonContent({
         </TabsPanel>
         <TabsPanel value="example">
           <div className="instruction-content code-help-content">
-            <h2>Building blocks</h2>
-            <p className="snippet-note">
-              Use these tools to work through the task in your editor.
+            <h2>How to use it</h2>
+            <p className="code-help-intro">
+              {trackIntroductions[lesson.track]}
             </p>
+            {codeHelpExamples.map(([code, explanation, tryIt], index) => (
+              <section className="code-help-example" key={code}>
+                <h3>
+                  Small example
+                  {codeHelpExamples.length > 1 ? ` ${index + 1}` : ""}
+                </h3>
+                <pre>
+                  <code>{code}</code>
+                </pre>
+                <h4>What each part means</h4>
+                <p>{explanation}</p>
+                <h4>Try it yourself</h4>
+                <p>{tryIt}</p>
+              </section>
+            ))}
+            <h3>Use the idea in this task</h3>
             <dl className="code-help-blocks">
               {getCodeHelp(lesson).map(([name, purpose]) => (
                 <div key={name}>

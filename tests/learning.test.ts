@@ -3,6 +3,7 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { eq } from "drizzle-orm";
 import { rmSync } from "node:fs";
 import { lessons, getLesson, trackLessons, tracks } from "~/content/curriculum";
+import { getCodeHelpExamples } from "~/content/code-help-examples";
 import { readFiles, saveFiles } from "~/lib/workspace";
 import { exportProject } from "~/server/services/compiler";
 import {
@@ -51,6 +52,14 @@ describe("authored curriculum", () => {
       const result = await validateExercise(lesson.id, lesson.starter);
       expect(result.passed).toBe(false);
     });
+    if (lesson.kind !== "quiz") {
+      it(`${lesson.id}: teaching examples leave the exercise to the learner`, async () => {
+        for (const [code] of getCodeHelpExamples(lesson)) {
+          const result = await validateExercise(lesson.id, code);
+          expect(result.passed).toBe(false);
+        }
+      });
+    }
   }
   it("accepts an alternative function implementation", async () => {
     expect(
