@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
-import { ArrowRight, Check, Sprout } from "lucide-react";
+import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
+import { Check } from "pixelarticons/react/Check.js";
+import { Leaf as Sprout } from "pixelarticons/react/Leaf.js";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardPanel, CardFooter } from "~/components/ui/card";

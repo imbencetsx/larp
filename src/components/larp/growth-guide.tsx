@@ -1,5 +1,5 @@
 "use client";
-import { Sprout } from "lucide-react";
+import { Leaf as Sprout } from "pixelarticons/react/Leaf.js";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,

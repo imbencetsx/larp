@@ -2,11 +2,9 @@
 
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  MoreHorizontalIcon,
-} from "lucide-react";
+import { ChevronLeft as ChevronLeftIcon } from "pixelarticons/react/ChevronLeft.js";
+import { ChevronRight as ChevronRightIcon } from "pixelarticons/react/ChevronRight.js";
+import { MoreHorizontal as MoreHorizontalIcon } from "pixelarticons/react/MoreHorizontal.js";
 import type * as React from "react";
 import { cn } from "~/lib/utils";
 import { type Button, buttonVariants } from "~/components/ui/button";

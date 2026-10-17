@@ -1,15 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Lightbulb,
-  Download,
-} from "lucide-react";
+import { ArrowLeft } from "pixelarticons/react/ArrowLeft.js";
+import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
+import { CheckboxOn as CheckCircle2 } from "pixelarticons/react/CheckboxOn.js";
+import { ChevronLeft } from "pixelarticons/react/ChevronLeft.js";
+import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
+import { Lightbulb } from "pixelarticons/react/Lightbulb.js";
+import { Download } from "pixelarticons/react/Download.js";
 import { Button } from "~/components/ui/button";
 import { Card, CardHeader } from "~/components/ui/card";
 import { Alert, AlertDescription } from "~/components/ui/alert";

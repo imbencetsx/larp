@@ -1,6 +1,9 @@
 "use client";
 import Link from "next/link";
-import { ArrowRight, BookOpen, CheckCircle2, Sprout } from "lucide-react";
+import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
+import { BookOpen } from "pixelarticons/react/BookOpen.js";
+import { CheckboxOn as CheckCircle2 } from "pixelarticons/react/CheckboxOn.js";
+import { Leaf as Sprout } from "pixelarticons/react/Leaf.js";
 import {
   Empty,
   EmptyHeader,
@@ -47,9 +50,10 @@ export function ProgressPage() {
             <Sprout />
             <strong>
               {
-                tracks.filter(
-                  (t) =>
-                    trackLessons(t.id).every((lesson) => done.some((p) => p.lessonId === lesson.id)),
+                tracks.filter((t) =>
+                  trackLessons(t.id).every((lesson) =>
+                    done.some((p) => p.lessonId === lesson.id),
+                  ),
                 ).length
               }
               <span> / 5</span>
