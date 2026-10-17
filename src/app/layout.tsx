@@ -39,13 +39,37 @@ export default function RootLayout({
             signInUrl="/sign-in"
             signUpUrl="/sign-up"
             appearance={{
-              elements: { formButtonPrimary: { color: "#1a2314" } },
+              elements: {
+                badge: {
+                  '&[data-color="primary"]': {
+                    color: "#efe9de",
+                    backgroundColor: "#302c25",
+                    borderColor: "#474136",
+                  },
+                },
+                activeDeviceIcon: {
+                  "--cl-chassis-bottom": "#aaa193",
+                  "--cl-chassis-back": "#aaa193",
+                  "--cl-chassis-screen": "#efe9de",
+                  "--cl-screen": "#302c25",
+                },
+              },
               variables: {
                 colorPrimary: "#bedb8a",
+                colorPrimaryForeground: "#1a2314",
                 colorBackground: "#1c1916",
-                colorInputBackground: "#141210",
-                colorText: "#efe9de",
-                colorTextSecondary: "#aaa193",
+                // Menu actions and icons use neutral shades, separate from text.
+                colorNeutral: "#efe9de",
+                colorForeground: "#efe9de",
+                colorMutedForeground: "#aaa193",
+                colorMuted: "#24211d",
+                colorInput: "#141210",
+                colorInputForeground: "#efe9de",
+                colorBorder: "#474136",
+                colorModalBackdrop: "#000000",
+                colorDanger: "#ed867e",
+                colorSuccess: "#9cd675",
+                colorWarning: "#ddbc74",
                 fontFamily: "var(--font-pixel), monospace",
                 borderRadius: "var(--radius)",
               },
