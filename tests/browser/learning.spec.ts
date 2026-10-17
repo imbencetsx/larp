@@ -86,7 +86,7 @@ test("save drafts, use hints, copy snippets, and persist settings", async ({
   await expectCodeValue(editor, 'const myDraft = "a little progress";');
   await page.getByRole("button", { name: "Show hint" }).click();
   await expect(page.locator(".hint-text")).toHaveCount(1);
-  await page.getByRole("tab", { name: "Example", exact: true }).click();
+  await page.getByRole("tab", { name: "Code help", exact: true }).click();
   await page
     .locator(".snippet")
     .getByRole("button", { name: "Copy code" })

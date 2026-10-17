@@ -178,7 +178,7 @@ function LessonContent({
           <TabsList size="sm" aria-label="Lesson content">
             <TabsTab value="task">Task</TabsTab>
             <TabsTab value="read">Read</TabsTab>
-            <TabsTab value="example">Example</TabsTab>
+            <TabsTab value="example">Code help</TabsTab>
             {lesson.projectBrief && <TabsTab value="brief">Ship</TabsTab>}
           </TabsList>
         </CardHeader>

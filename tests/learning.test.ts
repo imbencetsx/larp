@@ -51,6 +51,13 @@ describe("authored curriculum", () => {
       const result = await validateExercise(lesson.id, lesson.starter);
       expect(result.passed).toBe(false);
     });
+    if (lesson.kind !== "quiz") {
+      it(`${lesson.id}: code help leaves work for the learner`, async () => {
+        expect(lesson.example.trim()).not.toBe(lesson.solution.trim());
+        const result = await validateExercise(lesson.id, lesson.example);
+        expect(result.passed).toBe(false);
+      });
+    }
   }
   it("accepts an alternative function implementation", async () => {
     expect(

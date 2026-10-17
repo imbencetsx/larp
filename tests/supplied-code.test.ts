@@ -29,7 +29,7 @@ describe("supplied code", () => {
     ]) {
       const lesson = lessons.find((lesson) => lesson.id === id)!;
       expect(lesson.solution.split("\n").length).toBeGreaterThan(10);
-      expect(lesson.example).toBe(lesson.solution);
+      expect(lesson.example).toBe(lesson.starter);
     }
   });
   it("upgrades unchanged supplied drafts while preserving learner edits exactly", () => {

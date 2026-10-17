@@ -48,9 +48,9 @@ export function lab(
     duration: options.kind === "project" ? 40 : 16,
     objective: task,
     paragraphs,
-    example: solution,
+    example: starter,
     exampleNote:
-      "Trace this worked implementation, then reset the editor and rebuild it. Try the edge cases from the task before running the checks.",
+      "Use this unfinished scaffold to plan your approach. Work through one requirement at a time, then test the edge cases described in the lesson.",
     task,
     starter,
     solution,
