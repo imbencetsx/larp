@@ -70,11 +70,9 @@ test("complete the curriculum, preserve progress, and avoid duplicate completion
   expect(errors).toEqual([]);
 });
 
-test("save drafts, use hints, copy snippets, and persist settings", async ({
+test("save drafts, use conceptual code help, and persist settings", async ({
   page,
-  context,
 }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/learn/javascript/1");
   const editor = page.getByRole("textbox", {
     name: "Code editor for garden.js",
@@ -87,14 +85,15 @@ test("save drafts, use hints, copy snippets, and persist settings", async ({
   await page.getByRole("button", { name: "Show hint" }).click();
   await expect(page.locator(".hint-text")).toHaveCount(1);
   await page.getByRole("tab", { name: "Code help", exact: true }).click();
-  await page
-    .locator(".snippet")
-    .getByRole("button", { name: "Copy code" })
-    .click();
-  await expect(page.locator(".snippet")).toContainText("Copied!");
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-    lessons.find((l) => l.id === "javascript-1")!.example,
-  );
+  const help = page.locator(".code-help-content");
+  await expect(
+    help.getByRole("heading", { name: "Building blocks" }),
+  ).toBeVisible();
+  await expect(help.locator("dt")).toHaveText([
+    "Variables, strings, and numbers",
+    "Template literals and console.log",
+  ]);
+  await expect(help.locator("pre, .snippet, button")).toHaveCount(0);
   await page.goto("/settings");
   await page.getByLabel("Your name", { exact: true }).fill("Alex");
   await page.getByLabel("Your plant’s name").fill("Fernanda");

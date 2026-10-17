@@ -26,11 +26,12 @@ import {
 import { useMediaQuery } from "~/hooks/use-media-query";
 import { api } from "~/trpc/react";
 import { lessons, tracks, type Lesson } from "~/content/curriculum";
+import { getCodeHelp } from "~/content/code-help";
 import { useLearning } from "./learning-provider";
 import { GrowingPlant } from "./growing-plant";
 import { fullBloomStage, getCourseGrowth } from "~/lib/garden";
 import { Badge } from "~/components/ui/badge";
-import { Editor, Preview, Snippet } from "./code-workspace";
+import { Editor, Preview } from "./code-workspace";
 import type { RunResult } from "~/server/services/validate";
 import { initialFiles, readFiles, saveFiles } from "~/lib/workspace";
 import { downloadProject } from "~/lib/download-project";
@@ -309,9 +310,19 @@ function LessonContent({
           </div>
         </TabsPanel>
         <TabsPanel value="example">
-          <div className="instruction-content example-content">
-            <Snippet code={lesson.example} filename={lesson.filename} />
-            <p className="snippet-note">{lesson.exampleNote}</p>
+          <div className="instruction-content code-help-content">
+            <h2>Building blocks</h2>
+            <p className="snippet-note">
+              Use these tools to work through the task in your editor.
+            </p>
+            <dl className="code-help-blocks">
+              {getCodeHelp(lesson).map(([name, purpose]) => (
+                <div key={name}>
+                  <dt>{name}</dt>
+                  <dd>{purpose}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </TabsPanel>
       </Tabs>

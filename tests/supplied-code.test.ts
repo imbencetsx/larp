@@ -2,8 +2,20 @@ import { describe, expect, it } from "vitest";
 import { lessons, rawLessons } from "~/content/curriculum";
 import { initialFiles, readFiles, saveFiles } from "~/lib/workspace";
 import { initialPlaygroundDrafts } from "~/lib/playground";
+import { getCodeHelp } from "~/content/code-help";
 
 describe("supplied code", () => {
+  it("provides named building blocks and prose guidance for every coding lesson", () => {
+    for (const lesson of lessons.filter((item) => item.kind !== "quiz")) {
+      const blocks = getCodeHelp(lesson);
+      expect(blocks.length, lesson.id).toBeGreaterThanOrEqual(2);
+      for (const [name, purpose] of blocks) {
+        expect(name.trim(), lesson.id).not.toBe("");
+        expect(purpose.trim(), lesson.id).not.toBe("");
+        expect(`${name} ${purpose}`, lesson.id).not.toMatch(/[{}<>`\n]/);
+      }
+    }
+  });
   it("provides complete, linked, formatted HTML files throughout the curriculum", () => {
     for (const lesson of lessons.filter((lesson) => lesson.kind !== "quiz")) {
       const files = initialFiles(lesson);

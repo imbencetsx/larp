@@ -1297,8 +1297,21 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
-.example-content {
-  padding-inline: 12px;
+.code-help-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 24px 0 0;
+}
+.code-help-blocks dt {
+  color: var(--foreground);
+  font-size: 15px;
+}
+.code-help-blocks dd {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.7;
 }
 .snippet {
   overflow: hidden;
