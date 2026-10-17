@@ -716,10 +716,12 @@
   font-size: 16px;
   margin-bottom: 10px;
 }
-.progress-path [data-slot="card-panel"] > span:last-of-type {
-  margin-left: 24px;
-  font-size: 13px;
-  color: var(--muted-foreground);
+.progress-path-art {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  background: var(--track-scene) center / contain no-repeat;
+  image-rendering: pixelated;
 }
 .progress-path [data-slot="card-panel"] > svg {
   width: 16px;
@@ -1668,8 +1670,9 @@
     gap: 12px;
     padding-inline: 16px;
   }
-  .progress-path [data-slot="card-panel"] > span:last-of-type {
-    margin-left: 6px;
+  .progress-path-art {
+    width: 48px;
+    height: 48px;
   }
   .lesson-row [data-slot="card-panel"] {
     gap: 12px;

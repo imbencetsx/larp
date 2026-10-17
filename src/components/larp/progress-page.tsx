@@ -69,10 +69,10 @@ export function ProgressPage() {
           <Card
             key={t.id}
             render={<Link href={`/courses/${t.id}`} />}
-            className={`progress-path ${t.color}`}
+            className={`progress-path ${t.color} scene-${t.id}`}
           >
             <CardPanel>
-              <span className="track-icon">{t.short}</span>
+              <span className="progress-path-art" aria-hidden="true" />
               <div>
                 <h3>{t.name}</h3>
                 <LessonProgress
