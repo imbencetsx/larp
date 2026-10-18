@@ -55,7 +55,7 @@ function ClerkAccount() {
 }
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { data, error, refresh, authEnabled } = useLearning();
+  const { error, refresh, authEnabled } = useLearning();
   const [search, setSearch] = useState(false);
   const [term, setTerm] = useState("");
   useEffect(() => {
@@ -149,7 +149,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="guest-avatar"
                 aria-label="Guest profile"
               >
-                {data?.profile.name[0]?.toUpperCase() ?? "L"}
+                L
               </Button>
             )}
             <Menu>

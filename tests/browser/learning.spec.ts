@@ -102,7 +102,7 @@ test("save drafts, use conceptual code help, and persist settings", async ({
   ).toBeVisible();
   await expect(help.locator(".snippet, button")).toHaveCount(0);
   await page.goto("/settings");
-  await page.getByLabel("Your name", { exact: true }).fill("Alex");
+  await expect(page.getByLabel("Your name", { exact: true })).toHaveCount(0);
   await page.getByLabel("Your plant’s name").fill("Fernanda");
   await page.getByRole("combobox").click();
   await page.getByRole("option", { name: "2 lessons a day" }).click();
@@ -111,7 +111,9 @@ test("save drafts, use conceptual code help, and persist settings", async ({
   await page.reload();
   await expect(page.getByLabel("Your plant’s name")).toHaveValue("Fernanda");
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Alex");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Let’s build.",
+  );
   await expect(page.locator(".plant-name")).toContainText("Fernanda");
 });
 

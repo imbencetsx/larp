@@ -15,7 +15,7 @@ bun run dev
 
 Open [localhost:3000](http://localhost:3000). The workspace is at `/`; the introduction is at `/welcome`.
 
-The default `DATABASE_URL` is `file:./db.sqlite`. Migrations are checked in under `drizzle/`. Seeding is repeatable and never adds artificial user progress. The app also ensures course and lesson catalog records exist on the first learning request, after migrations have run.
+The default `DATABASE_URL` is `file:./db.sqlite`. Migrations are checked in under `drizzle/`. Seeding is repeatable and never adds artificial user progress. The app inserts missing course and lesson catalog records on the first progress write, after migrations have run. Progress reads do not synchronize the catalog. Run `bun run db:seed` after curriculum changes to refresh stored lesson content.
 
 ## Clerk authentication
 
@@ -92,3 +92,40 @@ The strict ESLint configuration applies to application code. Imported coss regis
 Use persistent disk for a local SQLite deployment. For serverless hosting, configure a persistent hosted libSQL/Turso database using `DATABASE_URL="libsql://..."` and `DATABASE_AUTH_TOKEN`. The Drizzle configuration selects the Turso dialect for a libSQL URL. Run migrations and the seed command against that target before serving traffic. Local SQLite files are not durable on ephemeral serverless filesystems.
 
 Set Clerk production keys and the production domain in Clerk before enabling account authentication on a deployed site. Run the application with the Node.js runtime; exercise validation depends on WASM and the TypeScript compiler.
+
+## Vercel deployment
+
+Set `DATABASE_URL` to a hosted libSQL/Turso URL (`libsql://…`) and set
+`DATABASE_AUTH_TOKEN` in the Vercel environment. Local `file:` SQLite databases
+cannot persist progress on Vercel. Run `bun run db:migrate` and `bun run db:seed`
+against that hosted database before deploying.
+
+Set `APP_ORIGIN` to the deployed HTTPS origin (for example,
+`https://larplang.vercel.app`). Guest-only deployments also need a random
+`GUEST_SESSION_SECRET` of at least 32 characters.
+
+For Clerk on `larplang.vercel.app`, configure live keys from the same production
+instance in the Vercel **Production** environment:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_…`
+- `CLERK_SECRET_KEY=sk_live_…`
+
+The app uses `@clerk/nextjs` 7.9.17 or newer, which supports automatic Frontend
+API proxying on production `*.vercel.app` hosts. Its app-origin proxy URL is
+`https://larplang.vercel.app/__clerk`. The middleware matcher explicitly includes
+`/__clerk/:path*`, including proxy requests for JavaScript assets that the normal
+static-file matcher excludes. Let Clerk auto-detect the proxy; explicit
+`proxyUrl` or `domain` overrides disable automatic detection. Redeploy after
+changing keys or upgrading the SDK. Do not configure DNS records for `vercel.app`.
+
+Sign-in, sign-up, verification-code emails, and password-reset code emails can
+use Clerk's shared `accounts.dev` email infrastructure. Use code-based email
+flows for this deployment. A custom domain is preferred when full branded
+production behavior, custom email templates, email-link authentication, app
+invitations, organization invitations, or email-template customization are
+needed.
+
+The learning API logs procedure failures and startup failures in Vercel's
+function logs. An HTML 500 returned by `/api/trpc/learning.overview` means the
+service failed before producing a tRPC response; inspect those logs for the
+underlying configuration, database, or module error.

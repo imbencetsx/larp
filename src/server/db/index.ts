@@ -4,6 +4,12 @@ import { drizzle } from "drizzle-orm/libsql";
 import { env } from "~/env";
 import * as schema from "./schema";
 
+if (process.env.VERCEL && env.DATABASE_URL.startsWith("file:")) {
+  throw new Error(
+    "Vercel requires a hosted database. Set DATABASE_URL to a libsql:// URL and DATABASE_AUTH_TOKEN, then run db:migrate and db:seed against it.",
+  );
+}
+
 /**
  * Cache the database connection in development. This avoids creating a new connection on every HMR
  * update.

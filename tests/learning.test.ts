@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { eq } from "drizzle-orm";
 import { rmSync } from "node:fs";
@@ -11,6 +11,7 @@ import {
   runPlayground,
   simulateComponent,
 } from "~/server/services/validate";
+import { ensureCatalog, synchronizeCatalog } from "~/server/services/catalog";
 import { ensureLearner, recordAttempt } from "~/server/services/progress";
 import { db, client } from "~/server/db";
 import { users, progress, attempts } from "~/server/db/schema";
@@ -24,6 +25,37 @@ afterAll(() => {
   for (const suffix of ["", "-wal", "-shm", "-journal"])
     rmSync(`.larp-test.sqlite${suffix}`, { force: true });
 });
+describe("learning startup", () => {
+  it("loads progress without synchronizing the lesson catalog", async () => {
+    const batch = vi.spyOn(db, "batch");
+    try {
+      const caller = createCaller({
+        db,
+        headers: new Headers(),
+        learnerId: "startup-learner",
+        userId: null,
+        guestId: "startup-learner",
+      });
+      expect((await caller.learning.overview()).profile.id).toBe(
+        "startup-learner",
+      );
+      expect(batch).not.toHaveBeenCalled();
+    } finally {
+      batch.mockRestore();
+    }
+  });
+  it("does not rewrite an existing catalog on a new server initialization", async () => {
+    await ensureCatalog();
+    const batch = vi.spyOn(db, "batch");
+    try {
+      await synchronizeCatalog(false);
+      expect(batch).not.toHaveBeenCalled();
+    } finally {
+      batch.mockRestore();
+    }
+  });
+});
+
 describe("authored curriculum", () => {
   it("has sequential, complete paths with advanced projects and quiz checkpoints", () => {
     expect(new Set(lessons.map((lesson) => lesson.id)).size).toBe(
@@ -355,7 +387,6 @@ describe("persistent progress and authorization", () => {
   it("persists settings and validates their bounds", async () => {
     const caller = createCaller(context("test-a"));
     await caller.learning.settings({
-      name: "Alex",
       plantName: "Fernanda",
       dailyGoal: 2,
     });
@@ -364,7 +395,7 @@ describe("persistent progress and authorization", () => {
         ?.plantName,
     ).toBe("Fernanda");
     await expect(
-      caller.learning.settings({ name: "", plantName: "", dailyGoal: 10 }),
+      caller.learning.settings({ plantName: "", dailyGoal: 10 }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

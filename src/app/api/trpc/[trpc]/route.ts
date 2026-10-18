@@ -1,9 +1,6 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { type NextRequest } from "next/server";
 
-import { env } from "~/env";
-import { appRouter } from "~/server/api/root";
-import { createTRPCContext } from "~/server/api/trpc";
 import {
   isSameOrigin,
   MAX_BODY_BYTES,
@@ -11,16 +8,6 @@ import {
 } from "~/server/security";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/**
- * This wraps the `createTRPCContext` helper and provides the required context for the tRPC API when
- * handling a HTTP request (e.g. when you make requests from Client Components).
- */
-const createContext = async (req: NextRequest) => {
-  return createTRPCContext({
-    headers: req.headers,
-  });
-};
 
 const handler = async (req: NextRequest) => {
   const blocked = (message: string, status: number) =>
@@ -88,24 +75,48 @@ const handler = async (req: NextRequest) => {
       body,
     });
   }
-  const response = await fetchRequestHandler({
-    endpoint: "/api/trpc",
-    req: request,
-    router: appRouter,
-    createContext: () => createContext(req),
-    onError:
-      env.NODE_ENV === "development"
-        ? ({ path, error }) => {
-            console.error(
-              `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`,
-            );
-          }
-        : undefined,
-  });
-  response.headers.set("Cache-Control", "private, no-store");
-  response.headers.append("Vary", "Cookie, Origin");
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  return response;
+  // Keep module/configuration failures inside the JSON transport boundary.
+  try {
+    const [{ appRouter }, { createTRPCContext }] = await Promise.all([
+      import("~/server/api/root"),
+      import("~/server/api/trpc"),
+    ]);
+    const response = await fetchRequestHandler({
+      endpoint: "/api/trpc",
+      req: request,
+      router: appRouter,
+      createContext: () => createTRPCContext({ headers: req.headers }),
+      onError: ({ path, error }) => {
+        console.error(`tRPC failed on ${path ?? "<no-path>"}:`, error);
+      },
+    });
+    response.headers.set("Cache-Control", "private, no-store");
+    response.headers.append("Vary", "Cookie, Origin");
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    return response;
+  } catch (error) {
+    console.error("Could not initialize the learning API:", error);
+    const failure = {
+      error: {
+        json: {
+          message:
+            "The learning service could not start. Please try again shortly.",
+          code: -32603,
+          data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+        },
+      },
+    };
+    return Response.json(
+      req.nextUrl.searchParams.get("batch") === "1" ? [failure] : failure,
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
+      },
+    );
+  }
 };
 
 export { handler as GET, handler as POST };

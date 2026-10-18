@@ -66,7 +66,7 @@ export default function RootLayout({
                 colorInput: "#141210",
                 colorInputForeground: "#efe9de",
                 colorBorder: "#474136",
-                colorModalBackdrop: "#000000",
+                colorModalBackdrop: "rgba(0, 0, 0, 0.15)",
                 colorDanger: "#ed867e",
                 colorSuccess: "#9cd675",
                 colorWarning: "#ddbc74",
