@@ -100,14 +100,24 @@ For a new deployment, open the Vercel project’s **Storage** page, create a
 `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`; LARP and Drizzle automatically use
 that pair, overriding any old local `DATABASE_URL` setting.
 
-To initialize the connected database, download the production environment to a
-local ignored file using Vercel CLI, then run the checked-in migrations and seed:
+In the storage connection's deployment actions, enable database branching for
+**Preview only**. Production must use the stable connected database; enabling
+the `branch` action for Production creates an isolated database for each release
+and prevents learner progress from carrying over between deployments.
 
-```sh
-bunx vercel link
-bunx vercel env pull .env.production.local --environment=production
-bun --env-file=.env.production.local run db:setup
-```
+Vercel deployments automatically run `bun run db:setup && bun run build`, as
+configured in `vercel.json`. This applies pending checked-in migrations and
+synchronizes the lesson catalog before the new deployment serves traffic.
+Existing learner progress is preserved. Keep this build command enabled so new
+or reconnected databases always have the required tables.
+
+The setup runs inside Vercel, where the connected credentials are available.
+Vercel Secret values are write-only: `vercel env pull` returns `[SENSITIVE]`
+placeholders, so a downloaded production env file cannot initialize the
+database locally.
+
+If you already have the real hosted credentials in a local ignored env file,
+you can instead run `bun --env-file=<your-env-file> run db:setup` locally.
 
 `db:setup` creates the tables and synchronizes the lesson catalog. It does not
 copy local learner progress. Redeploy the application after connecting storage

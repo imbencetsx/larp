@@ -12,6 +12,7 @@ export default tseslint.config(
     // coss registry files are vendored; lint application code with the strict rules below.
     ignores: [
       ".next*/**",
+      "generated/**",
       "test-results/**",
       "playwright-report/**",
       "next-env.d.ts",

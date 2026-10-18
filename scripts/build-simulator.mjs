@@ -8,7 +8,10 @@ await build({
   platform: "node",
   format: "cjs",
   target: "node20",
-  packages: "external",
+  // Bundle DOM/CSS dependencies so the standalone worker does not depend on
+  // Next.js tracing imports that are only present inside this generated file.
+  // Keep TypeScript external for its standard-library files, and QuickJS for WASM.
+  external: ["typescript", "quickjs-emscripten"],
   alias: { "~": resolve("src") },
   sourcemap: false,
   logLevel: "warning",

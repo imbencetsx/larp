@@ -12,12 +12,10 @@ const config = {
   outputFileTracingIncludes: {
     "/api/trpc/[trpc]": [
       "./generated/simulator-worker.cjs",
-      "./node_modules/typescript/lib/**/*",
+      "./node_modules/typescript/**/*",
       "./node_modules/quickjs-emscripten/**/*",
       "./node_modules/quickjs-emscripten-core/**/*",
       "./node_modules/@jitl/**/*",
-      "./node_modules/postcss/**/*",
-      "./node_modules/linkedom/**/*",
     ],
   },
   async headers() {
