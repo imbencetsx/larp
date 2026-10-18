@@ -6,6 +6,8 @@ import {
   MAX_BODY_BYTES,
   requestLimiter,
 } from "~/server/security";
+import { DatabaseConfigurationError } from "~/server/db/configuration";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -100,7 +102,9 @@ const handler = async (req: NextRequest) => {
       error: {
         json: {
           message:
-            "The learning service could not start. Please try again shortly.",
+            error instanceof DatabaseConfigurationError
+              ? error.message
+              : "The learning service could not start. Please try again shortly.",
           code: -32603,
           data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
         },
