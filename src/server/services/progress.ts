@@ -3,7 +3,6 @@ import { db } from "~/server/db";
 import { users, progress, attempts } from "~/server/db/schema";
 import { ensureCatalog } from "./catalog";
 export async function ensureLearner(id: string, guestId?: string | null) {
-  await ensureCatalog();
   await db.insert(users).values({ id }).onConflictDoNothing();
   if (guestId && guestId !== id) {
     // A single batch avoids holding an interactive SQLite transaction across
@@ -46,6 +45,7 @@ export async function recordAttempt(
   passed: boolean,
   growth = 0,
 ) {
+  await ensureCatalog();
   const now = new Date();
   const earnedGrowth = passed
     ? 100

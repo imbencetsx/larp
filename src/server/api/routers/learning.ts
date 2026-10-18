@@ -7,6 +7,7 @@ import {
   protectedProcedure,
 } from "~/server/api/trpc";
 import { users, progress } from "~/server/db/schema";
+import { ensureCatalog } from "~/server/services/catalog";
 import { ensureLearner, recordAttempt } from "~/server/services/progress";
 import {
   validateExercise,
@@ -56,6 +57,7 @@ export const learningRouter = createTRPCRouter({
     };
   }),
   save: initialized.input(lessonInput).mutation(async ({ ctx, input }) => {
+    await ensureCatalog();
     await ctx.db
       .insert(progress)
       .values({ userId: ctx.learnerId, ...input, updatedAt: new Date() })
@@ -105,7 +107,6 @@ export const learningRouter = createTRPCRouter({
   settings: initialized
     .input(
       z.object({
-        name: z.string().trim().min(1).max(40),
         plantName: z.string().trim().min(1).max(30),
         dailyGoal: z.number().int().min(1).max(5),
       }),

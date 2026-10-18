@@ -65,7 +65,6 @@ export function Dashboard() {
   const { data, loading } = useLearning();
   const completed = data?.progress.filter((p) => p.completedAt) ?? [];
   const next = lessons.find((l) => !completed.some((p) => p.lessonId === l.id));
-  const name = data?.profile.name;
   const bloomed = tracks.filter(
     (track) => getCourseGrowth(track.id, data?.progress).bloomed,
   ).length;
@@ -74,9 +73,7 @@ export function Dashboard() {
       <section className="page-heading dashboard-heading">
         <div>
           <span className="eyebrow">YOUR WORKSPACE</span>
-          <h1>
-            {name && name !== "Learner" ? `Hey, ${name}.` : "Let’s build."}
-          </h1>
+          <h1>Let’s build.</h1>
         </div>
         <Badge variant="outline">
           {completed.length} / {lessons.length} lessons

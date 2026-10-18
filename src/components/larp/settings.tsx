@@ -27,7 +27,7 @@ const goalOptions = [1, 2, 3, 4, 5].map((n) => ({
   label: `${n} ${n === 1 ? "lesson" : "lessons"} a day`,
 }));
 export function SettingsPage() {
-  const { data, loading, refresh, authEnabled } = useLearning();
+  const { data, loading, error, refresh, authEnabled } = useLearning();
   if (loading)
     return (
       <div className="loading-panel">
@@ -35,11 +35,11 @@ export function SettingsPage() {
         Loading settings…
       </div>
     );
+  if (error && !data) return null;
   return (
     <SettingsForm
       key={data?.profile.id ?? "guest"}
       initial={{
-        name: data?.profile.name ?? "Learner",
         plantName: data?.profile.plantName ?? "Sprout",
         dailyGoal: data?.profile.dailyGoal ?? 1,
       }}
@@ -55,7 +55,7 @@ function SettingsForm({
   authEnabled,
   refresh,
 }: {
-  initial: { name: string; plantName: string; dailyGoal: number };
+  initial: { plantName: string; dailyGoal: number };
   guest: boolean;
   authEnabled: boolean;
   refresh: () => Promise<unknown>;
@@ -74,7 +74,7 @@ function SettingsForm({
       <div className="settings-grid">
         <Card className="settings-panel">
           <CardHeader>
-            <CardTitle>Profile</CardTitle>
+            <CardTitle>Preferences</CardTitle>
           </CardHeader>
           <CardPanel>
             <Form
@@ -95,19 +95,6 @@ function SettingsForm({
                 }
               }}
             >
-              <Field name="name">
-                <FieldLabel htmlFor="display-name">Your name</FieldLabel>
-                <Input
-                  id="display-name"
-                  required
-                  maxLength={40}
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                />
-                <FieldError />
-              </Field>
               <Field name="plantName">
                 <FieldLabel htmlFor="plant-name">Your plant’s name</FieldLabel>
                 <Input
