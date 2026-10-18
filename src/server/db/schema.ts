@@ -19,6 +19,11 @@ export const users = createTable("user", {
   name: text().notNull().default("Learner"),
   plantName: text().notNull().default("Sprout"),
   dailyGoal: integer().notNull().default(1),
+  learningTrack: text({
+    enum: ["html", "css", "javascript", "typescript", "nextjs"],
+  }),
+  referralSource: text(),
+  onboardingCompletedAt: integer({ mode: "timestamp" }),
   createdAt: integer({ mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

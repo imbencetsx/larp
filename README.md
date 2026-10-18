@@ -32,6 +32,14 @@ Sign-in is required for all learning pages and learning API requests. Without bo
 
 Browser tests for learning features need an authenticated Clerk session. Set `PLAYWRIGHT_STORAGE_STATE` to a Playwright storage-state JSON file saved after signing in to the configured local Clerk application. Keep this file outside the repository because it contains session credentials. The authentication tests use an empty session to verify redirects and rejected API requests.
 
+## Onboarding and analytics
+
+After Clerk verification, `/auth/continue` checks the account and sends it to onboarding or its requested learning page. Completed sessions leave the auth screen with a fresh document so server layouts see the new session. Existing accounts also complete onboarding once. The two steps collect a first learning track and a referral source (including “Prefer not to say”). Answers and completion time are stored on `larp_user`; repeat submissions preserve the first completed answers and existing progress. The selected track’s first lesson opens after completion unless the user originally requested another learning page.
+
+Run `bun run db:migrate` before starting an updated local installation. Vercel’s existing `db:setup` build step applies the included migration before deployment.
+
+PostHog is optional and stays inactive while `NEXT_PUBLIC_POSTHOG_KEY` is unset. To enable it later, set that public project key and `NEXT_PUBLIC_POSTHOG_HOST` to the project’s ingestion host (`https://us.i.posthog.com` or `https://eu.i.posthog.com`), then rebuild. The lazy client in `src/lib/analytics.ts` exposes typed events for onboarding start, step completion, completion, and learning page views. Account identity uses only the Clerk user ID and resets on sign-out; page events omit query strings. Autocapture and session recording are disabled, and analytics failures never block the app. No email addresses, names, code, or verification details are included in the explicit event payloads. See the [PostHog Next.js guide](https://posthog.com/docs/libraries/next-js) for future additions.
+
 ## What is included
 
 - Five learning paths: HTML, CSS, JavaScript, TypeScript, and Next.js.

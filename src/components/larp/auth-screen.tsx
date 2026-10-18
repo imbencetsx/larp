@@ -1,18 +1,25 @@
-import { SignIn, SignUp } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
+import { getClerkUserId } from "~/server/auth";
+import { authContinuation } from "~/lib/onboarding";
+import { AuthFlow } from "./auth-flow";
 import { Card, CardPanel } from "~/components/ui/card";
 import { authConfigured } from "~/server/auth";
 import { Topbar } from "./topbar";
-export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
+export async function AuthScreen({
+  mode,
+  destination,
+}: {
+  mode: "sign-in" | "sign-up";
+  destination?: string;
+}) {
+  const continuation = authContinuation(destination);
+  if (await getClerkUserId()) redirect(continuation);
   return (
     <>
       <Topbar />
       <main className="auth-page">
         {authConfigured ? (
-          mode === "sign-in" ? (
-            <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" />
-          ) : (
-            <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" />
-          )
+          <AuthFlow mode={mode} continuation={continuation} />
         ) : (
           <Card className="auth-card">
             <CardPanel>

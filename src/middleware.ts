@@ -14,6 +14,10 @@ function withContentPolicy(request: NextRequest) {
   );
   const policy = contentPolicy(nonce);
   request.headers.set("x-nonce", nonce);
+  request.headers.set(
+    "x-larp-path",
+    request.nextUrl.pathname + request.nextUrl.search,
+  );
   request.headers.set("Content-Security-Policy", policy);
   const response = NextResponse.next({ request: { headers: request.headers } });
   response.headers.set("Content-Security-Policy", policy);
@@ -33,7 +37,10 @@ function signInRequired(request: NextRequest) {
     );
   }
   const url = new URL("/sign-in", request.url);
-  url.searchParams.set("redirect_url", request.url);
+  url.searchParams.set(
+    "redirect_url",
+    request.nextUrl.pathname + request.nextUrl.search,
+  );
   return NextResponse.redirect(url);
 }
 const withClerk = clerkMiddleware(async (auth, request) => {

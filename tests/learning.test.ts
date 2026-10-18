@@ -500,3 +500,67 @@ describe("course flower growth", () => {
     });
   });
 });
+
+describe("account onboarding", () => {
+  const caller = (id: string, userId: string | null = id) =>
+    createCaller({
+      db,
+      headers: new Headers({
+        host: "localhost:3000",
+        origin: "http://localhost:3000",
+      }),
+      learnerId: id,
+      userId,
+      guestId: userId ? null : id,
+    });
+  it("saves answers once across concurrent retries and keeps existing progress and preferences", async () => {
+    const account = caller("onboarding-account");
+    await ensureLearner("onboarding-account");
+    await account.learning.settings({ plantName: "My garden", dailyGoal: 3 });
+    await recordAttempt("onboarding-account", "html-1", "completed code", true);
+    const answers = {
+      learningTrack: "typescript" as const,
+      referralSource: "youtube" as const,
+    };
+    const saved = await Promise.all([
+      account.learning.completeOnboarding(answers),
+      account.learning.completeOnboarding(answers),
+    ]);
+    expect(saved.filter((result) => result.firstCompletion)).toHaveLength(1);
+    expect(
+      await account.learning.completeOnboarding({
+        learningTrack: "css",
+        referralSource: "other",
+      }),
+    ).toEqual({ firstCompletion: false, learningTrack: "typescript" });
+    const state = await account.learning.overview();
+    expect(state.profile).toMatchObject({
+      learningTrack: "typescript",
+      referralSource: "youtube",
+      plantName: "My garden",
+      dailyGoal: 3,
+    });
+    expect(state.profile.onboardingCompletedAt).toBeInstanceOf(Date);
+    expect(
+      state.progress.find((row) => row.lessonId === "html-1")?.completedAt,
+    ).toBeInstanceOf(Date);
+    expect(
+      (await caller("onboarding-other").learning.overview()).profile
+        .onboardingCompletedAt,
+    ).toBeNull();
+  });
+  it("rejects guest onboarding and invalid answers", async () => {
+    await expect(
+      caller("onboarding-guest", null).learning.completeOnboarding({
+        learningTrack: "html",
+        referralSource: "friend",
+      }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(
+      caller("onboarding-invalid").learning.completeOnboarding({
+        learningTrack: "html",
+        referralSource: "" as "friend",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});

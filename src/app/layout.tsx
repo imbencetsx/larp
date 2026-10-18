@@ -1,6 +1,7 @@
 import "~/styles/globals.css";
 import { type Metadata } from "next";
 import { Geist_Mono, Tiny5, Pixelify_Sans } from "next/font/google";
+import { AnalyticsProvider } from "~/components/larp/analytics-provider";
 import { ClerkProvider } from "@clerk/nextjs";
 import { TRPCReactProvider } from "~/trpc/react";
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-code" });
@@ -74,9 +75,10 @@ export default function RootLayout({
                 borderRadius: "var(--radius)",
               },
             }}
-            signInFallbackRedirectUrl="/"
-            signUpFallbackRedirectUrl="/"
+            signInFallbackRedirectUrl="/auth/continue"
+            signUpFallbackRedirectUrl="/auth/continue"
           >
+            <AnalyticsProvider />
             {content}
           </ClerkProvider>
         ) : (
