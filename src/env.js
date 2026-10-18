@@ -31,8 +31,11 @@ export const env = createEnv({
    * middlewares) or client-side so we need to destruct manually.
    */
   runtimeEnv: {
-    DATABASE_URL: process.env.DATABASE_URL,
-    DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN,
+    // Prefer the connected Vercel Turso resource over an old local URL.
+    DATABASE_URL: process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL,
+    DATABASE_AUTH_TOKEN: process.env.TURSO_DATABASE_URL
+      ? process.env.TURSO_AUTH_TOKEN
+      : process.env.DATABASE_AUTH_TOKEN,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     GUEST_SESSION_SECRET: process.env.GUEST_SESSION_SECRET,
     APP_ORIGIN: process.env.APP_ORIGIN,

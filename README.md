@@ -95,6 +95,26 @@ Set Clerk production keys and the production domain in Clerk before enabling acc
 
 ## Vercel deployment
 
+For a new deployment, open the Vercel project’s **Storage** page, create a
+**Turso Cloud** database, and connect it to the project. The integration creates
+`TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`; LARP and Drizzle automatically use
+that pair, overriding any old local `DATABASE_URL` setting.
+
+To initialize the connected database, download the production environment to a
+local ignored file using Vercel CLI, then run the checked-in migrations and seed:
+
+```sh
+bunx vercel link
+bunx vercel env pull .env.production.local --environment=production
+bun --env-file=.env.production.local run db:setup
+```
+
+`db:setup` creates the tables and synchronizes the lesson catalog. It does not
+copy local learner progress. Redeploy the application after connecting storage
+and initializing the database.
+
+Alternatively, configure the connection manually:
+
 Set `DATABASE_URL` to a hosted libSQL/Turso URL (`libsql://…`) and set
 `DATABASE_AUTH_TOKEN` in the Vercel environment. Local `file:` SQLite databases
 cannot persist progress on Vercel. Run `bun run db:migrate` and `bun run db:seed`
