@@ -1,3 +1,5 @@
+import { onboardingInput } from "~/lib/onboarding";
+import { completeOnboarding } from "~/server/services/onboarding";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -45,6 +47,9 @@ const initialized = learnerProcedure.use(async ({ ctx, next }) => {
   return next({ ctx });
 });
 export const learningRouter = createTRPCRouter({
+  completeOnboarding: initialized
+    .input(onboardingInput)
+    .mutation(({ ctx, input }) => completeOnboarding(ctx.learnerId, input)),
   overview: initialized.query(async ({ ctx }) => {
     const [profile, rows] = await Promise.all([
       ctx.db.select().from(users).where(eq(users.id, ctx.learnerId)).get(),

@@ -36,9 +36,7 @@ it.each(["/", "/learn/html/1", "/progress", "/playground", "/settings"])(
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
     expect(location.pathname).toBe("/sign-in");
-    expect(location.searchParams.get("redirect_url")).toBe(
-      `https://larplang.vercel.app${path}`,
-    );
+    expect(location.searchParams.get("redirect_url")).toBe(path);
   },
 );
 it("rejects anonymous API access as JSON instead of redirecting to HTML", async () => {
