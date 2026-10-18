@@ -1,5 +1,10 @@
 "use client";
 import Link from "next/link";
+import { ContinueCarousel } from "./continue-carousel";
+import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
+import { GardenBed } from "./garden-bed";
+import { getCourseGrowth } from "~/lib/garden";
+import { tracks } from "~/content/curriculum";
 import { Plus } from "pixelarticons/react/Plus.js";
 import { BookOpen } from "pixelarticons/react/BookOpen.js";
 import { enrolledTracks } from "~/lib/course-enrollment";
@@ -63,6 +68,15 @@ export function Dashboard() {
   const completed = courseLessons.filter((lesson) =>
     data?.progress.some((row) => row.lessonId === lesson.id && row.completedAt),
   ).length;
+  const hasNext = courseLessons.some(
+    (lesson) =>
+      !data?.progress.some(
+        (row) => row.lessonId === lesson.id && row.completedAt,
+      ),
+  );
+  const bloomed = tracks.filter(
+    (track) => getCourseGrowth(track.id, data?.progress).bloomed,
+  ).length;
   return (
     <>
       <section className="page-heading dashboard-heading">
@@ -75,6 +89,24 @@ export function Dashboard() {
           New course
         </Button>
       </section>
+      {!loading &&
+        selected.length > 0 &&
+        (hasNext ? (
+          <ContinueCarousel tracks={selected} />
+        ) : (
+          <Card className="resume-card">
+            <CardPanel>
+              <div>
+                <span className="eyebrow">ALL YOUR COURSES COMPLETE</span>
+                <h2>Look at how much you’ve grown.</h2>
+                <p>Pick a new course and keep your garden growing.</p>
+              </div>
+              <Button render={<Link href="/courses/new" />}>
+                Explore a new course <ArrowRight aria-hidden="true" />
+              </Button>
+            </CardPanel>
+          </Card>
+        ))}
       {selected.length > 0 && (
         <div className="section-heading">
           <h2>Your courses</h2>
@@ -112,6 +144,36 @@ export function Dashboard() {
             </Button>
           </CardPanel>
         </Card>
+      )}
+      {!loading && selected.length > 0 && (
+        <section
+          className="learning-overview"
+          aria-label="Your learning progress"
+        >
+          <Card className="garden-strip">
+            <CardPanel>
+              <GardenBed compact />
+              <div className="garden-growth">
+                <div className="garden-name">
+                  <h3>{data?.profile?.gardenName ?? "Your garden"}</h3>
+                  <Badge variant="secondary">Your garden</Badge>
+                </div>
+                <LessonProgress
+                  completed={bloomed}
+                  total={tracks.length}
+                  label="Flowers bloomed"
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link href="/garden" />}
+              >
+                Visit garden <ArrowUpRight aria-hidden="true" />
+              </Button>
+            </CardPanel>
+          </Card>
+        </section>
       )}
     </>
   );

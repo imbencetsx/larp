@@ -2,6 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+} from "~/components/ui/field";
 import { RadioGroup } from "~/components/ui/radio-group";
 import { ChoiceTile, courseIcons } from "./choice-tile";
 import { Users } from "pixelarticons/react/Users.js";
@@ -23,6 +30,7 @@ const referralIcons = {
   prefer_not_to_say: Minus,
 };
 import {
+  gardenNameInput,
   learningChoices,
   referralChoices,
   type OnboardingAnswers,
@@ -31,19 +39,25 @@ import { trackEvent } from "~/lib/analytics";
 import { api } from "~/trpc/react";
 
 export function Onboarding() {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [learningTrack, setLearningTrack] = useState<
     OnboardingAnswers["learningTrack"] | ""
   >("");
   const [referralSource, setReferralSource] = useState<
     OnboardingAnswers["referralSource"] | ""
   >("");
+  const [gardenName, setGardenName] = useState("");
   const [leaving, setLeaving] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const started = useRef(false);
   const save = api.learning.completeOnboarding.useMutation({
     onSuccess(result, input) {
-      if (result.firstCompletion) trackEvent("onboarding_completed", input);
+      if (result.firstCompletion) {
+        trackEvent("onboarding_completed", {
+          learningTrack: input.learningTrack,
+          referralSource: input.referralSource,
+        });
+      }
       setLeaving(true);
       window.location.replace(`/courses/${result.learningTrack}`);
     },
@@ -61,23 +75,28 @@ export function Onboarding() {
   return (
     <main className="onboarding-page">
       <section className="onboarding-panel" aria-labelledby="onboarding-title">
-        <div className="onboarding-progress" aria-label={`Step ${step} of 2`}>
+        <div className="onboarding-progress" aria-label={`Step ${step} of 3`}>
           <span className="onboarding-kicker">A little about you</span>
-          <span>0{step} / 02</span>
+          <span>0{step} / 03</span>
         </div>
         <div className="onboarding-progress-bars" aria-hidden="true">
           <span data-active />
-          <span data-active={step === 2 || undefined} />
+          <span data-active={step >= 2 || undefined} />
+          <span data-active={step === 3 || undefined} />
         </div>
         <h1 id="onboarding-title" ref={heading} tabIndex={-1}>
           {step === 1
             ? "What do you want to start learning?"
-            : "How did you hear about LARP?"}
+            : step === 2
+              ? "How did you hear about LARP?"
+              : "What should your garden’s name be?"}
         </h1>
         <p className="onboarding-description">
           {step === 1
             ? "Pick your first path. You can explore every course whenever you like."
-            : "Help us find more people who want to learn by building."}
+            : step === 2
+              ? "Help us find more people who want to learn by building."
+              : "Every lesson helps it grow. Give your garden a name to make it yours."}
         </p>
         <form
           onSubmit={(event) => {
@@ -89,7 +108,21 @@ export function Onboarding() {
               });
               setStep(2);
             } else if (step === 2 && learningTrack && referralSource) {
-              save.mutate({ learningTrack, referralSource });
+              trackEvent("onboarding_step_completed", {
+                step: "referral_source",
+              });
+              setStep(3);
+            } else if (
+              step === 3 &&
+              learningTrack &&
+              referralSource &&
+              gardenNameInput.safeParse(gardenName).success
+            ) {
+              save.mutate({
+                learningTrack,
+                referralSource,
+                gardenName: gardenName.trim(),
+              });
             }
           }}
         >
@@ -114,7 +147,7 @@ export function Onboarding() {
                 />
               ))}
             </RadioGroup>
-          ) : (
+          ) : step === 2 ? (
             <RadioGroup
               key="referral"
               aria-labelledby="onboarding-title"
@@ -136,6 +169,26 @@ export function Onboarding() {
                 />
               ))}
             </RadioGroup>
+          ) : (
+            <Field name="gardenName" disabled={pending}>
+              <FieldLabel htmlFor="onboarding-garden-name">
+                Garden name
+              </FieldLabel>
+              <Input
+                id="onboarding-garden-name"
+                type="text"
+                size="lg"
+                required
+                maxLength={30}
+                value={gardenName}
+                placeholder="e.g. The little green patch"
+                onChange={(event) => setGardenName(event.target.value)}
+              />
+              <FieldDescription>
+                Up to 30 characters. You can change it in settings.
+              </FieldDescription>
+              <FieldError />
+            </Field>
           )}
           {save.error && (
             <p className="onboarding-error" role="alert">
@@ -143,14 +196,14 @@ export function Onboarding() {
             </p>
           )}
           <div className="onboarding-actions">
-            {step === 2 ? (
+            {step > 1 ? (
               <Button
                 type="button"
                 variant="ghost"
                 disabled={pending}
                 onClick={() => {
                   save.reset();
-                  setStep(1);
+                  setStep(step === 3 ? 2 : 1);
                 }}
               >
                 Back
@@ -164,9 +217,15 @@ export function Onboarding() {
               type="submit"
               size="lg"
               loading={pending}
-              disabled={step === 1 ? !learningTrack : !referralSource}
+              disabled={
+                step === 1
+                  ? !learningTrack
+                  : step === 2
+                    ? !referralSource
+                    : !gardenNameInput.safeParse(gardenName).success
+              }
             >
-              {step === 1 ? "Continue" : "View my course"}
+              {step < 3 ? "Continue" : "View my course"}
               <ArrowRight aria-hidden="true" />
             </Button>
           </div>

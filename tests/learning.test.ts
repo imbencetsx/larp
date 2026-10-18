@@ -394,15 +394,15 @@ describe("persistent progress and authorization", () => {
   it("persists settings and validates their bounds", async () => {
     const caller = createCaller(context("test-a"));
     await caller.learning.settings({
-      plantName: "Fernanda",
+      gardenName: "Fernanda",
       dailyGoal: 2,
     });
     expect(
       (await db.select().from(users).where(eq(users.id, "test-a")).get())
-        ?.plantName,
+        ?.gardenName,
     ).toBe("Fernanda");
     await expect(
-      caller.learning.settings({ plantName: "", dailyGoal: 10 }),
+      caller.learning.settings({ gardenName: "", dailyGoal: 10 }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
@@ -513,14 +513,15 @@ describe("account onboarding", () => {
       userId,
       guestId: userId ? null : id,
     });
-  it("saves answers once across concurrent retries and keeps existing progress and preferences", async () => {
+  it("saves the garden name once across concurrent retries and keeps progress and daily goal", async () => {
     const account = caller("onboarding-account");
     await ensureLearner("onboarding-account");
-    await account.learning.settings({ plantName: "My garden", dailyGoal: 3 });
+    await account.learning.settings({ gardenName: "Old garden", dailyGoal: 3 });
     await recordAttempt("onboarding-account", "html-1", "completed code", true);
     const answers = {
       learningTrack: "typescript" as const,
       referralSource: "youtube" as const,
+      gardenName: "My garden",
     };
     const saved = await Promise.all([
       account.learning.completeOnboarding(answers),
@@ -531,13 +532,14 @@ describe("account onboarding", () => {
       await account.learning.completeOnboarding({
         learningTrack: "css",
         referralSource: "other",
+        gardenName: "A different garden",
       }),
     ).toEqual({ firstCompletion: false, learningTrack: "typescript" });
     const state = await account.learning.overview();
     expect(state.profile).toMatchObject({
       learningTrack: "typescript",
       referralSource: "youtube",
-      plantName: "My garden",
+      gardenName: "My garden",
       dailyGoal: 3,
     });
     expect(state.profile.onboardingCompletedAt).toBeInstanceOf(Date);
@@ -554,12 +556,14 @@ describe("account onboarding", () => {
       caller("onboarding-guest", null).learning.completeOnboarding({
         learningTrack: "html",
         referralSource: "friend",
+        gardenName: "The green patch",
       }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     await expect(
       caller("onboarding-invalid").learning.completeOnboarding({
         learningTrack: "html",
         referralSource: "" as "friend",
+        gardenName: "The green patch",
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
@@ -583,6 +587,7 @@ describe("explicit course enrollment", () => {
     await account.learning.completeOnboarding({
       learningTrack: "css",
       referralSource: "friend",
+      gardenName: "The green patch",
     });
     const state = await account.learning.overview();
     expect(state.enrollments).toHaveLength(1);
@@ -594,6 +599,7 @@ describe("explicit course enrollment", () => {
     await account.learning.completeOnboarding({
       learningTrack: "javascript",
       referralSource: "other",
+      gardenName: "A different garden",
     });
     expect(
       (await account.learning.overview()).enrollments.map((row) => row.trackId),

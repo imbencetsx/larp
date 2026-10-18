@@ -37,7 +37,14 @@ export const referralChoices = [
   { id: "other", name: "Somewhere else" },
   { id: "prefer_not_to_say", name: "Prefer not to say" },
 ] as const;
+export const gardenNameInput = z
+  .string()
+  .trim()
+  .min(1, "Give your garden a name.")
+  .max(30);
+
 export const onboardingInput = z.object({
+  gardenName: gardenNameInput,
   learningTrack: z.enum(["html", "css", "javascript", "typescript", "nextjs"]),
   referralSource: z.enum([
     "friend",

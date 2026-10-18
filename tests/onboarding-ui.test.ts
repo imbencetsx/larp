@@ -62,7 +62,7 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-it("keeps both answers when going back and submits only after both questions", async () => {
+it("keeps answers when going back and saves the garden name with onboarding", async () => {
   const user = userEvent.setup();
   render(createElement(Onboarding));
   const continueButton = screen.getByRole("button", { name: "Continue" });
@@ -76,7 +76,7 @@ it("keeps both answers when going back and submits only after both questions", a
   );
   expect(
     screen.getByRole<HTMLButtonElement>("button", {
-      name: "View my course",
+      name: "Continue",
     }).disabled,
   ).toBe(true);
   await user.click(screen.getByRole("radio", { name: "Prefer not to say" }));
@@ -87,10 +87,27 @@ it("keeps both answers when going back and submits only after both questions", a
       .getAttribute("aria-checked"),
   ).toBe("true");
   await user.click(screen.getByRole("button", { name: "Continue" }));
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  expect(mocks.mutate).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole<HTMLButtonElement>("button", { name: "View my course" })
+      .disabled,
+  ).toBe(true);
+  await user.type(
+    screen.getByRole("textbox", { name: "Garden name" }),
+    "  My garden  ",
+  );
+  await user.click(screen.getByRole("button", { name: "Back" }));
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  expect(
+    screen.getByRole<HTMLInputElement>("textbox", { name: "Garden name" })
+      .value,
+  ).toBe("  My garden  ");
   await user.click(screen.getByRole("button", { name: "View my course" }));
   expect(mocks.mutate).toHaveBeenCalledExactlyOnceWith({
     learningTrack: "javascript",
     referralSource: "prefer_not_to_say",
+    gardenName: "My garden",
   });
 });
 it("shows a recoverable save error", async () => {
@@ -101,10 +118,21 @@ it("shows a recoverable save error", async () => {
   await user.click(screen.getByRole("radio", { name: /HTML Start/ }));
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await user.click(screen.getByRole("radio", { name: "YouTube" }));
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  expect(mocks.mutate).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole<HTMLButtonElement>("button", { name: "View my course" })
+      .disabled,
+  ).toBe(true);
+  await user.type(
+    screen.getByRole("textbox", { name: "Garden name" }),
+    "  My garden  ",
+  );
   await user.click(screen.getByRole("button", { name: "View my course" }));
   expect(mocks.mutate).toHaveBeenCalledWith({
     learningTrack: "html",
     referralSource: "youtube",
+    gardenName: "My garden",
   });
 });
 it("sets an explicit authentication handoff for sign-in and sign-up", async () => {
@@ -166,7 +194,11 @@ it("opens the selected course overview after onboarding", () => {
   render(createElement(Onboarding));
   mocks.onSuccess!(
     { firstCompletion: true, learningTrack: "css" },
-    { learningTrack: "css", referralSource: "friend" },
+    { learningTrack: "css", referralSource: "friend", gardenName: "My garden" },
   );
   expect(replace).toHaveBeenCalledExactlyOnceWith("/courses/css");
+  expect(mocks.track).toHaveBeenCalledWith("onboarding_completed", {
+    learningTrack: "css",
+    referralSource: "friend",
+  });
 });

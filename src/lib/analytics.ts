@@ -6,8 +6,8 @@ import type { OnboardingAnswers } from "./onboarding";
 type Events = {
   course_added: CourseEnrollmentInput;
   onboarding_started: Record<string, never>;
-  onboarding_step_completed: { step: "learning_track" };
-  onboarding_completed: OnboardingAnswers;
+  onboarding_step_completed: { step: "learning_track" | "referral_source" };
+  onboarding_completed: Omit<OnboardingAnswers, "gardenName">;
   learning_page_viewed: { path: string };
 };
 let client: Promise<PostHog | null> | undefined;

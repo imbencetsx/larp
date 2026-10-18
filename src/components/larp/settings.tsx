@@ -40,7 +40,7 @@ export function SettingsPage() {
     <SettingsForm
       key={data?.profile.id ?? "guest"}
       initial={{
-        plantName: data?.profile.plantName ?? "Sprout",
+        gardenName: data?.profile.gardenName ?? "Sprout",
         dailyGoal: data?.profile.dailyGoal ?? 1,
       }}
       guest={data?.guest ?? true}
@@ -55,7 +55,7 @@ function SettingsForm({
   authEnabled,
   refresh,
 }: {
-  initial: { plantName: string; dailyGoal: number };
+  initial: { gardenName: string; dailyGoal: number };
   guest: boolean;
   authEnabled: boolean;
   refresh: () => Promise<unknown>;
@@ -95,15 +95,18 @@ function SettingsForm({
                 }
               }}
             >
-              <Field name="plantName">
-                <FieldLabel htmlFor="plant-name">Your plant’s name</FieldLabel>
+              <Field name="gardenName">
+                <FieldLabel htmlFor="garden-name">
+                  Your garden’s name
+                </FieldLabel>
                 <Input
-                  id="plant-name"
+                  id="garden-name"
+                  type="text"
                   required
                   maxLength={30}
-                  value={form.plantName}
+                  value={form.gardenName}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, plantName: e.target.value }))
+                    setForm((f) => ({ ...f, gardenName: e.target.value }))
                   }
                 />
                 <FieldError />
