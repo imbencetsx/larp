@@ -33,8 +33,8 @@ describe("learning startup", () => {
         db,
         headers: new Headers(),
         learnerId: "startup-learner",
-        userId: null,
-        guestId: "startup-learner",
+        userId: "startup-learner",
+        guestId: null,
       });
       expect((await caller.learning.overview()).profile.id).toBe(
         "startup-learner",
@@ -178,8 +178,8 @@ describe("quizzes and multi-file projects", () => {
         origin: "http://localhost:3000",
       }),
       learnerId: "preview-only",
-      userId: null,
-      guestId: "preview-only",
+      userId: "preview-only",
+      guestId: null,
     });
     const preview = await caller.learning.run({
       lessonId: "javascript-12",
@@ -215,8 +215,8 @@ describe("quizzes and multi-file projects", () => {
         origin: "http://localhost:3000",
       }),
       learnerId: "quiz-learner",
-      userId: null,
-      guestId: "quiz-learner",
+      userId: "quiz-learner",
+      guestId: null,
     });
     const lesson = getLesson("html-15")!;
     const answers = lesson.quiz!.map((question) => question.answer);
@@ -284,7 +284,7 @@ describe("persistent progress and authorization", () => {
     host: "localhost:3000",
     origin: "http://localhost:3000",
   });
-  const context = (id: string | null, userId: string | null = null) => ({
+  const context = (id: string | null, userId: string | null = id) => ({
     db,
     headers,
     learnerId: id,
@@ -342,12 +342,19 @@ describe("persistent progress and authorization", () => {
     });
     expect(again.newlyCompleted).toBe(false);
   });
-  it("requires a session and protects account data from guests", async () => {
+  it("requires sign-in for learning and account data", async () => {
     await expect(
       createCaller(context(null)).learning.overview(),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    const guest = createCaller(context("guest_abc", null));
+    await expect(guest.learning.overview()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
     await expect(
-      createCaller(context("guest_abc")).learning.account(),
+      guest.learning.save({ lessonId: "html-1", code: "guest draft" }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(
+      createCaller(context("guest_abc", null)).learning.account(),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
   it("rejects cross-origin changes and unknown lessons", async () => {
@@ -408,8 +415,8 @@ describe("course flower growth", () => {
       origin: "http://localhost:3000",
     }),
     learnerId: id,
-    userId: null,
-    guestId: id,
+    userId: id,
+    guestId: null,
   });
   it("saves verified partial growth without completing the lesson or another flower", async () => {
     const caller = createCaller(context("garden-partial"));

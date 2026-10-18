@@ -30,7 +30,7 @@ it("routes Clerk proxy scripts through middleware while skipping normal static a
   ).toBe(false);
 });
 
-it("automatically proxies a production vercel.app request before the guest handler", async () => {
+it("automatically proxies a production vercel.app request before the authentication handler", async () => {
   vi.stubEnv(
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
     `pk_live_${btoa("clerk.larplang.vercel.app$")}`,

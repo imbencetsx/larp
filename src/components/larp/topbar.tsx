@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export function Topbar({ children }: { children: React.ReactNode }) {
+export function Topbar({ children }: { children?: React.ReactNode }) {
   return (
     <header className="topbar">
       <div className="topbar-inner">

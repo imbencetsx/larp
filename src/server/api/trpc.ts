@@ -12,7 +12,7 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
     ?.match(/(?:^|;\s*)larp_guest=([^;]+)(?:;|$)/)?.[1];
   const verified = await verifyGuest(raw);
   const guestId = verified ? `guest_${verified}` : null;
-  return { db, userId, guestId, learnerId: userId ?? guestId, ...opts };
+  return { db, userId, guestId, learnerId: userId, ...opts };
 };
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
@@ -36,10 +36,10 @@ export const createCallerFactory = t.createCallerFactory;
 export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 export const learnerProcedure = t.procedure.use(({ ctx, next, type, path }) => {
-  if (!ctx.learnerId)
+  if (!ctx.userId)
     throw new TRPCError({
       code: "UNAUTHORIZED",
-      message: "Refresh the page to start a learning session.",
+      message: "Sign in to continue learning.",
     });
   if (type === "mutation") {
     if (!isSameOrigin(ctx.headers))
@@ -54,7 +54,7 @@ export const learnerProcedure = t.procedure.use(({ ctx, next, type, path }) => {
     );
   if (
     !requestLimiter.allow(
-      `${ctx.learnerId}:${expensive ? "execution" : type}`,
+      `${ctx.userId}:${expensive ? "execution" : type}`,
       expensive ? 180 : type === "mutation" ? 300 : 600,
     )
   )
@@ -62,7 +62,7 @@ export const learnerProcedure = t.procedure.use(({ ctx, next, type, path }) => {
       code: "TOO_MANY_REQUESTS",
       message: "Too many requests. Please wait a moment and try again.",
     });
-  return next({ ctx: { ...ctx, learnerId: ctx.learnerId } });
+  return next({ ctx: { ...ctx, learnerId: ctx.userId } });
 });
 export const protectedProcedure = learnerProcedure.use(({ ctx, next }) => {
   if (!ctx.userId)

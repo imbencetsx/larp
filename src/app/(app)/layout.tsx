@@ -1,13 +1,15 @@
 import { AppShell } from "~/components/larp/app-shell";
 import { LearningProvider } from "~/components/larp/learning-provider";
-import { authConfigured } from "~/server/auth";
-export default function WorkspaceLayout({
+import { redirect } from "next/navigation";
+import { getClerkUserId } from "~/server/auth";
+export default async function WorkspaceLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  if (!(await getClerkUserId())) redirect("/sign-in");
   return (
-    <LearningProvider authEnabled={authConfigured}>
+    <LearningProvider authEnabled={true}>
       <AppShell>{children}</AppShell>
     </LearningProvider>
   );
