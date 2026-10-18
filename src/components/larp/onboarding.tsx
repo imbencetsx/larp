@@ -2,18 +2,35 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
 import { Button } from "~/components/ui/button";
-import { Radio, RadioGroup } from "~/components/ui/radio-group";
-import { Label } from "~/components/ui/label";
+import { RadioGroup } from "~/components/ui/radio-group";
+import { ChoiceTile, courseIcons } from "./choice-tile";
+import { Users } from "pixelarticons/react/Users.js";
+import { Search } from "pixelarticons/react/Search.js";
+import { Video } from "pixelarticons/react/Video.js";
+import { Camera } from "pixelarticons/react/Camera.js";
+import { Music } from "pixelarticons/react/Music.js";
+import { Message } from "pixelarticons/react/Message.js";
+import { Globe } from "pixelarticons/react/Globe.js";
+import { Minus } from "pixelarticons/react/Minus.js";
+const referralIcons = {
+  friend: Users,
+  search: Search,
+  tiktok: Music,
+  instagram: Camera,
+  youtube: Video,
+  reddit: Message,
+  other: Globe,
+  prefer_not_to_say: Minus,
+};
 import {
   learningChoices,
   referralChoices,
-  learningDestination,
   type OnboardingAnswers,
 } from "~/lib/onboarding";
 import { trackEvent } from "~/lib/analytics";
 import { api } from "~/trpc/react";
 
-export function Onboarding({ next }: { next: string }) {
+export function Onboarding() {
   const [step, setStep] = useState<1 | 2>(1);
   const [learningTrack, setLearningTrack] = useState<
     OnboardingAnswers["learningTrack"] | ""
@@ -28,10 +45,7 @@ export function Onboarding({ next }: { next: string }) {
     onSuccess(result, input) {
       if (result.firstCompletion) trackEvent("onboarding_completed", input);
       setLeaving(true);
-      const destination = learningDestination(next);
-      window.location.replace(
-        destination === "/" ? `/learn/${result.learningTrack}/1` : destination,
-      );
+      window.location.replace(`/courses/${result.learningTrack}`);
     },
   });
   useEffect(() => {
@@ -87,22 +101,17 @@ export function Onboarding({ next }: { next: string }) {
               onValueChange={(value) =>
                 setLearningTrack(value as OnboardingAnswers["learningTrack"])
               }
-              className="onboarding-choices"
+              className="onboarding-choices choice-grid"
             >
               {learningChoices.map((choice) => (
-                <Label
-                  className="onboarding-choice"
-                  data-selected={learningTrack === choice.id || undefined}
+                <ChoiceTile
                   key={choice.id}
-                >
-                  <Radio value={choice.id} />
-                  <span>
-                    <strong>{choice.name}</strong>{" "}
-                    <span className="onboarding-choice-description">
-                      {choice.description}
-                    </span>
-                  </span>
-                </Label>
+                  value={choice.id}
+                  selected={learningTrack === choice.id}
+                  icon={courseIcons[choice.id]}
+                  title={choice.name}
+                  description={choice.description}
+                />
               ))}
             </RadioGroup>
           ) : (
@@ -114,17 +123,17 @@ export function Onboarding({ next }: { next: string }) {
               onValueChange={(value) =>
                 setReferralSource(value as OnboardingAnswers["referralSource"])
               }
-              className="onboarding-choices onboarding-referrals"
+              className="onboarding-choices choice-grid onboarding-referrals"
             >
               {referralChoices.map((choice) => (
-                <Label
-                  className="onboarding-choice"
-                  data-selected={referralSource === choice.id || undefined}
+                <ChoiceTile
                   key={choice.id}
-                >
-                  <Radio value={choice.id} />
-                  <span>{choice.name}</span>
-                </Label>
+                  value={choice.id}
+                  selected={referralSource === choice.id}
+                  icon={referralIcons[choice.id]}
+                  title={choice.name}
+                  disabled={pending}
+                />
               ))}
             </RadioGroup>
           )}
@@ -157,7 +166,7 @@ export function Onboarding({ next }: { next: string }) {
               loading={pending}
               disabled={step === 1 ? !learningTrack : !referralSource}
             >
-              {step === 1 ? "Continue" : "Start learning"}
+              {step === 1 ? "Continue" : "View my course"}
               <ArrowRight aria-hidden="true" />
             </Button>
           </div>

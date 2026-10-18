@@ -79,3 +79,21 @@ export const attempts = createTable(
   },
   (t) => [index("attempt_user_idx").on(t.userId)],
 );
+
+export const enrollments = createTable(
+  "enrollment",
+  {
+    userId: text()
+      .notNull()
+      .references(() => users.id),
+    trackId: text({
+      enum: ["html", "css", "javascript", "typescript", "nextjs"],
+    }).notNull(),
+    experience: text({ enum: ["new", "some_basics", "comfortable"] }),
+    source: text({ enum: ["onboarding", "new_course"] }).notNull(),
+    createdAt: integer({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.trackId] })],
+);

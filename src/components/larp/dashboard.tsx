@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
-import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
+import { Plus } from "pixelarticons/react/Plus.js";
+import { BookOpen } from "pixelarticons/react/BookOpen.js";
+import { enrolledTracks } from "~/lib/course-enrollment";
 import { ExternalLink as ArrowUpRight } from "pixelarticons/react/ExternalLink.js";
 import { Card, CardHeader, CardPanel, CardFooter } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -8,14 +10,7 @@ import { Badge } from "~/components/ui/badge";
 import { LessonProgress } from "./lesson-progress";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useLearning } from "./learning-provider";
-import { GardenBed } from "./garden-bed";
-import { getCourseGrowth } from "~/lib/garden";
-import {
-  tracks,
-  lessons,
-  trackLessons,
-  type Track,
-} from "~/content/curriculum";
+import { trackLessons, type Track } from "~/content/curriculum";
 export function TrackCard({
   track,
   showIcons = true,
@@ -63,104 +58,60 @@ export function TrackCard({
 }
 export function Dashboard() {
   const { data, loading } = useLearning();
-  const completed = data?.progress.filter((p) => p.completedAt) ?? [];
-  const next = lessons.find((l) => !completed.some((p) => p.lessonId === l.id));
-  const bloomed = tracks.filter(
-    (track) => getCourseGrowth(track.id, data?.progress).bloomed,
+  const selected = enrolledTracks(data?.enrollments);
+  const courseLessons = selected.flatMap((track) => trackLessons(track.id));
+  const completed = courseLessons.filter((lesson) =>
+    data?.progress.some((row) => row.lessonId === lesson.id && row.completedAt),
   ).length;
   return (
     <>
       <section className="page-heading dashboard-heading">
         <div>
           <span className="eyebrow">YOUR WORKSPACE</span>
-          <h1>Let’s build.</h1>
+          <h1>Your learning.</h1>
         </div>
-        <Badge variant="outline">
-          {completed.length} / {lessons.length} lessons
-        </Badge>
+        <Button render={<Link href="/courses/new" />}>
+          <Plus aria-hidden="true" />
+          New course
+        </Button>
       </section>
-      <Card className="resume-card">
-        <CardPanel>
-          <div>
-            <span className="eyebrow">
-              {next
-                ? `${next.track.toUpperCase()} / ${String(next.number).padStart(2, "0")}`
-                : "ALL PATHS COMPLETE"}
-            </span>
-            <h2>{next?.title ?? "Your garden is in full bloom."}</h2>
-            <p>
-              {next
-                ? `${next.duration} min · Hands-on lesson`
-                : "Every course flower is ready to visit."}
-            </p>
-          </div>
-          <Button
-            render={
-              <Link
-                href={next ? `/learn/${next.track}/${next.number}` : "/garden"}
-              />
-            }
-          >
-            {next
-              ? completed.length
-                ? "Continue learning"
-                : "Start lesson"
-              : "Visit your garden"}
-            <ArrowRight aria-hidden="true" />
-          </Button>
-        </CardPanel>
-        <CardFooter className="resume-progress border-t">
-          <LessonProgress
-            completed={completed.length}
-            total={lessons.length}
-            label="Overall progress"
-          />
-        </CardFooter>
-      </Card>
-      <section className="paths-section">
+      {selected.length > 0 && (
         <div className="section-heading">
-          <h2>Your paths</h2>
-          <Button variant="ghost" size="sm" render={<Link href="/courses" />}>
-            View all <ArrowRight aria-hidden="true" />
-          </Button>
+          <h2>Your courses</h2>
+          <Badge variant="outline">
+            {completed} / {courseLessons.length} lessons
+          </Badge>
         </div>
-        <nav className="course-grid dashboard-courses" aria-label="Courses">
-          {loading
-            ? tracks.map((t) => (
-                <Skeleton key={t.id} className="track-skeleton" />
-              ))
-            : tracks.map((t) => (
-                <TrackCard key={t.id} track={t} showIcons={false} />
-              ))}
+      )}
+      {loading ? (
+        <div className="course-grid dashboard-courses">
+          <Skeleton className="track-skeleton" />
+          <Skeleton className="track-skeleton" />
+        </div>
+      ) : selected.length ? (
+        <nav
+          className="course-grid dashboard-courses"
+          aria-label="Your courses"
+        >
+          {selected.map((track) => (
+            <TrackCard key={track.id} track={track} showIcons={false} />
+          ))}
         </nav>
-      </section>
-      <Card className="garden-strip">
-        <CardPanel>
-          <GardenBed compact />
-          <div className="garden-growth">
-            <div className="plant-name">
-              <h3>{data?.profile.plantName ?? "Sprout"}</h3>
-              <Badge variant="secondary">Your garden</Badge>
-            </div>
-            <LessonProgress
-              completed={bloomed}
-              total={tracks.length}
-              label="Flowers bloomed"
-            />
-          </div>
-          <Button variant="ghost" size="sm" render={<Link href="/garden" />}>
-            Visit garden
-            <ArrowUpRight aria-hidden="true" />
-          </Button>
-        </CardPanel>
-      </Card>
-      {data?.guest && (
-        <div className="guest-note">
-          <span>Guest session · progress saved</span>
-          <Link href="/sign-up">
-            Create account <ArrowUpRight aria-hidden="true" />
-          </Link>
-        </div>
+      ) : (
+        <Card className="learning-empty">
+          <CardPanel>
+            <BookOpen aria-hidden="true" />
+            <h2>Your next project starts here.</h2>
+            <p>
+              Add a course to make it yours. Work through every lesson at your
+              own pace.
+            </p>
+            <Button render={<Link href="/courses/new" />}>
+              <Plus aria-hidden="true" />
+              Add your first course
+            </Button>
+          </CardPanel>
+        </Card>
       )}
     </>
   );
