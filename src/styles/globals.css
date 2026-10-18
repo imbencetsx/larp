@@ -2252,3 +2252,32 @@
   .onboarding-actions [type="submit"] { margin-left: auto; }
 }
 @media (prefers-reduced-motion: reduce) { .onboarding-choice { transition: none; } }
+
+/* Shared square selectors for onboarding and adding a course. */
+.onboarding-panel { width: min(100%, 760px); }
+.choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.choice-tile { position: relative; aspect-ratio: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 20px; border: 2px solid var(--border); border-radius: 0; }
+.choice-icon { width: 32px; height: 32px; color: var(--primary); flex-shrink: 0; }
+.choice-copy { display: block; }
+.choice-tile strong { font-size: 17px; line-height: 1.35; }
+.choice-tile .pixel-radio { position: absolute; top: 16px; right: 16px; width: 18px; height: 18px; border-radius: 0; }
+.choice-tile .pixel-radio::before, .choice-tile [data-slot="radio-indicator"], .choice-tile [data-slot="radio-indicator"]::before { border-radius: 0; }
+.choice-tile [data-slot="radio-indicator"]::before { display: none; }
+.choice-check { display: none; position: absolute; top: 17px; right: 17px; width: 16px; height: 16px; color: var(--primary-foreground); pointer-events: none; }
+.choice-tile[data-selected] .choice-check { display: block; }
+.choice-tile[data-disabled] { opacity: .5; cursor: not-allowed; }
+.choice-tile[data-disabled]:hover { border-color: var(--border); }
+.onboarding-referrals .choice-tile { aspect-ratio: 1.2; }
+.new-course-panel { margin: 0 auto; padding-bottom: 40px; }
+.new-course-panel > .back-link { margin-bottom: 32px; }
+.learning-empty [data-slot="card-panel"] { padding: 56px 24px; display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; }
+.learning-empty [data-slot="card-panel"] > svg { width: 40px; height: 40px; color: var(--primary); }
+.learning-empty p { color: var(--muted-foreground); max-width: 420px; line-height: 1.6; }
+.course-add-prompt { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 0; }
+.course-add-prompt p { color: var(--muted-foreground); }
+@media (max-width: 600px) {
+  .choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .choice-tile { padding: 16px; gap: 12px; aspect-ratio: auto; min-height: 180px; }
+  .choice-tile .onboarding-choice-description { font-size: 13px; }
+  .onboarding-referrals .choice-tile { aspect-ratio: 1; min-height: 0; }
+}

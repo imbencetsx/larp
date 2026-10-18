@@ -95,7 +95,9 @@ test("API rejects cross-site, non-JSON, oversized, and over-batched requests", a
 
 test("dashboard cards keep artwork without icons", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator(".dashboard-courses .track-card")).toHaveCount(5);
+  await expect(
+    page.locator(".dashboard-courses .track-card").first(),
+  ).toBeVisible();
   await expect(page.locator(".dashboard-courses .track-icon")).toHaveCount(0);
   await expect(page.locator(".dashboard-courses svg")).toHaveCount(0);
   const artwork = await page

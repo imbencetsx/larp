@@ -63,7 +63,7 @@ export function learningDestination(value: unknown): string {
     return "/";
   const url = new URL(value, "https://larp.invalid");
   if (
-    !/^\/(?:learn\/(?:html|css|javascript|typescript|nextjs)\/\d+|courses(?:\/(?:html|css|javascript|typescript|nextjs))?|progress|garden|settings|playground)?$/.test(
+    !/^\/(?:learn\/(?:html|css|javascript|typescript|nextjs)\/\d+|courses(?:\/(?:new|html|css|javascript|typescript|nextjs))?|progress|garden|settings|playground)?$/.test(
       url.pathname,
     )
   )

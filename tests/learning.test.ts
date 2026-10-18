@@ -564,3 +564,93 @@ describe("account onboarding", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
+
+describe("explicit course enrollment", () => {
+  const caller = (id: string, userId: string | null = id) =>
+    createCaller({
+      db,
+      headers: new Headers({
+        host: "localhost:3000",
+        origin: "http://localhost:3000",
+      }),
+      learnerId: id,
+      userId,
+      guestId: null,
+    });
+  it("starts empty and enrolls only the course selected during onboarding", async () => {
+    const account = caller("enrollment-first");
+    expect((await account.learning.overview()).enrollments).toEqual([]);
+    await account.learning.completeOnboarding({
+      learningTrack: "css",
+      referralSource: "friend",
+    });
+    const state = await account.learning.overview();
+    expect(state.enrollments).toHaveLength(1);
+    expect(state.enrollments[0]).toMatchObject({
+      trackId: "css",
+      source: "onboarding",
+      experience: null,
+    });
+    await account.learning.completeOnboarding({
+      learningTrack: "javascript",
+      referralSource: "other",
+    });
+    expect(
+      (await account.learning.overview()).enrollments.map((row) => row.trackId),
+    ).toEqual(["css"]);
+  });
+  it("adds a course once, saves experience, and isolates accounts", async () => {
+    const account = caller("enrollment-add");
+    const input = {
+      trackId: "typescript" as const,
+      experience: "comfortable" as const,
+    };
+    const results = await Promise.all([
+      account.learning.addCourse(input),
+      account.learning.addCourse(input),
+    ]);
+    expect(results.filter((result) => result.added)).toHaveLength(1);
+    await account.learning.addCourse({
+      trackId: "typescript",
+      experience: "new",
+    });
+    const state = await account.learning.overview();
+    expect(state.enrollments).toHaveLength(1);
+    expect(state.enrollments[0]).toMatchObject({
+      trackId: "typescript",
+      experience: "comfortable",
+      source: "new_course",
+    });
+    expect(state.progress).toEqual([]);
+    expect(
+      (await caller("enrollment-other").learning.overview()).enrollments,
+    ).toEqual([]);
+    await account.learning.save({
+      lessonId: "html-1",
+      code: "trying a different course",
+    });
+    expect(
+      (await account.learning.overview()).enrollments.map((row) => row.trackId),
+    ).toEqual(["typescript"]);
+  });
+  it("requires sign-in, a known course, and a recognized experience answer", async () => {
+    await expect(
+      caller("enrollment-guest", null).learning.addCourse({
+        trackId: "html",
+        experience: "new",
+      }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(
+      caller("enrollment-invalid").learning.addCourse({
+        trackId: "unknown" as "html",
+        experience: "new",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      caller("enrollment-invalid").learning.addCourse({
+        trackId: "html",
+        experience: "other" as "new",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});

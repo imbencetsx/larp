@@ -5,82 +5,14 @@ import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
 import { Check } from "pixelarticons/react/Check.js";
 import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
 import { Clock as Clock3 } from "pixelarticons/react/Clock.js";
-import { Map as Route } from "pixelarticons/react/Map.js";
-import { tracks, trackLessons, type Track } from "~/content/curriculum";
+import { trackLessons, type Track } from "~/content/curriculum";
 import { Card, CardPanel } from "~/components/ui/card";
-import {
-  Empty,
-  EmptyHeader,
-  EmptyTitle,
-  EmptyContent,
-} from "~/components/ui/empty";
 import { Badge } from "~/components/ui/badge";
-import { Tabs, TabsList, TabsTab, TabsPanel } from "~/components/ui/tabs";
 import { Button } from "~/components/ui/button";
-import { TrackCard } from "./dashboard";
+import { Dashboard } from "./dashboard";
 import { useLearning } from "./learning-provider";
 export function Courses() {
-  const { data } = useLearning();
-  const started = tracks.filter((t) =>
-    data?.progress.some((p) => p.lessonId.startsWith(t.id + "-")),
-  );
-  return (
-    <>
-      <section className="page-heading">
-        <div>
-          <span className="eyebrow">THE CURRICULUM</span>
-          <h1>Pick your path.</h1>
-        </div>
-        <Badge variant="outline">
-          5 paths /{" "}
-          {tracks.reduce(
-            (count, track) => count + trackLessons(track.id).length,
-            0,
-          )}{" "}
-          lessons
-        </Badge>
-      </section>
-      <Tabs defaultValue="all" className="paths-tabs">
-        <TabsList>
-          <TabsTab value="all">All paths</TabsTab>
-          <TabsTab value="started">In progress</TabsTab>
-        </TabsList>
-        <TabsPanel value="all">
-          <div className="course-grid large-course-grid">
-            {tracks.map((t) => (
-              <TrackCard key={t.id} track={t} />
-            ))}
-          </div>
-        </TabsPanel>
-        <TabsPanel value="started">
-          {started.length ? (
-            <div className="course-grid large-course-grid">
-              {started.map((t) => (
-                <TrackCard key={t.id} track={t} />
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <Empty>
-                <EmptyHeader>
-                  <EmptyTitle>A fresh start.</EmptyTitle>
-                </EmptyHeader>
-                <EmptyContent>
-                  <Button render={<Link href="/learn/html/1" />}>
-                    Start with HTML <ArrowRight aria-hidden="true" />
-                  </Button>
-                </EmptyContent>
-              </Empty>
-            </Card>
-          )}
-        </TabsPanel>
-      </Tabs>
-      <div className="path-hint">
-        <Route aria-hidden="true" />
-        <span>Suggested: HTML → CSS → JavaScript → TypeScript → Next.js</span>
-      </div>
-    </>
-  );
+  return <Dashboard />;
 }
 export function CourseDetail({ track }: { track: Track }) {
   const { data } = useLearning();
@@ -93,7 +25,7 @@ export function CourseDetail({ track }: { track: Track }) {
     <>
       <Link href="/courses" className="back-link">
         <ArrowLeft aria-hidden="true" />
-        All paths
+        Your courses
       </Link>
       <section className={`track-detail-hero scene-${track.id}`}>
         <span className={`track-icon ${track.color}`}>{track.short}</span>
@@ -111,6 +43,17 @@ export function CourseDetail({ track }: { track: Track }) {
           </p>
         </div>
       </section>
+      {data &&
+        !data.enrollments.some(
+          (enrollment) => enrollment.trackId === track.id,
+        ) && (
+          <div className="course-add-prompt">
+            <p>Add this course to your learning dashboard.</p>
+            <Button render={<Link href={`/courses/new?track=${track.id}`} />}>
+              Add course <ArrowRight aria-hidden="true" />
+            </Button>
+          </div>
+        )}
       <div className="section-heading">
         <h2>Your course</h2>
         <span>

@@ -34,11 +34,15 @@ Browser tests for learning features need an authenticated Clerk session. Set `PL
 
 ## Onboarding and analytics
 
-After Clerk verification, `/auth/continue` checks the account and sends it to onboarding or its requested learning page. Completed sessions leave the auth screen with a fresh document so server layouts see the new session. Existing accounts also complete onboarding once. The two steps collect a first learning track and a referral source (including “Prefer not to say”). Answers and completion time are stored on `larp_user`; repeat submissions preserve the first completed answers and existing progress. The selected track’s first lesson opens after completion unless the user originally requested another learning page.
+After Clerk verification, `/auth/continue` checks the account and sends it to onboarding or its requested learning page. Completed sessions leave the auth screen with a fresh document so server layouts see the new session. Existing accounts also complete onboarding once. The two steps collect a first learning track and a referral source (including “Prefer not to say”). Answers and completion time are stored on `larp_user`; repeat submissions preserve the first completed answers and existing progress. The selected course is added to the account and its course overview opens after completion.
 
 Run `bun run db:migrate` before starting an updated local installation. Vercel’s existing `db:setup` build step applies the included migration before deployment.
 
 PostHog is optional and stays inactive while `NEXT_PUBLIC_POSTHOG_KEY` is unset. To enable it later, set that public project key and `NEXT_PUBLIC_POSTHOG_HOST` to the project’s ingestion host (`https://us.i.posthog.com` or `https://eu.i.posthog.com`), then rebuild. The lazy client in `src/lib/analytics.ts` exposes typed events for onboarding start, step completion, completion, and learning page views. Account identity uses only the Clerk user ID and resets on sign-out; page events omit query strings. Autocapture and session recording are disabled, and analytics failures never block the app. No email addresses, names, code, or verification details are included in the explicit event payloads. See the [PostHog Next.js guide](https://posthog.com/docs/libraries/next-js) for future additions.
+
+## Your courses
+
+The learning dashboard and `/courses` show only explicitly added courses. Onboarding adds the first selected course. The **New course** button opens `/courses/new`, where learners choose a course and their previous experience. Experience is saved on the enrollment and sent with the optional `course_added` analytics event; it never changes lesson content, order, checks, or availability. Repeated additions preserve the original enrollment. The enrollment migration carries forward the course previously selected during onboarding, without enrolling users in every course they may have previewed or practiced.
 
 ## What is included
 

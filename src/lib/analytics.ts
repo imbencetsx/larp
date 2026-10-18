@@ -1,8 +1,10 @@
 "use client";
 import type { PostHog } from "posthog-js";
+import type { CourseEnrollmentInput } from "./course-enrollment";
 import type { OnboardingAnswers } from "./onboarding";
 
 type Events = {
+  course_added: CourseEnrollmentInput;
   onboarding_started: Record<string, never>;
   onboarding_step_completed: { step: "learning_track" };
   onboarding_completed: OnboardingAnswers;

@@ -1,5 +1,6 @@
 import { onboardingInput } from "~/lib/onboarding";
 import { completeOnboarding } from "~/server/services/onboarding";
+import { courseEnrollmentInput } from "~/lib/course-enrollment";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -8,7 +9,7 @@ import {
   learnerProcedure,
   protectedProcedure,
 } from "~/server/api/trpc";
-import { users, progress } from "~/server/db/schema";
+import { users, progress, enrollments } from "~/server/db/schema";
 import { ensureCatalog } from "~/server/services/catalog";
 import { ensureLearner, recordAttempt } from "~/server/services/progress";
 import {
@@ -50,14 +51,30 @@ export const learningRouter = createTRPCRouter({
   completeOnboarding: initialized
     .input(onboardingInput)
     .mutation(({ ctx, input }) => completeOnboarding(ctx.learnerId, input)),
+  addCourse: initialized
+    .input(courseEnrollmentInput)
+    .mutation(async ({ ctx, input }) => {
+      const added = await ctx.db
+        .insert(enrollments)
+        .values({ userId: ctx.learnerId, ...input, source: "new_course" })
+        .onConflictDoNothing()
+        .returning({ trackId: enrollments.trackId });
+      return { added: added.length > 0, trackId: input.trackId };
+    }),
   overview: initialized.query(async ({ ctx }) => {
-    const [profile, rows] = await Promise.all([
+    const [profile, rows, selectedCourses] = await Promise.all([
       ctx.db.select().from(users).where(eq(users.id, ctx.learnerId)).get(),
       ctx.db.select().from(progress).where(eq(progress.userId, ctx.learnerId)),
+      ctx.db
+        .select()
+        .from(enrollments)
+        .where(eq(enrollments.userId, ctx.learnerId))
+        .orderBy(enrollments.createdAt, enrollments.trackId),
     ]);
     return {
       profile: profile!,
       progress: rows,
+      enrollments: selectedCourses,
       guest: !ctx.userId,
     };
   }),

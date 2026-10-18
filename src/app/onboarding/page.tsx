@@ -18,7 +18,7 @@ export default async function Page({
   return (
     <>
       <Topbar />
-      <Onboarding next={next} />
+      <Onboarding />
     </>
   );
 }

@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { OnboardingAnswers } from "~/lib/onboarding";
 import { Onboarding } from "~/components/larp/onboarding";
 import { AuthFlow } from "~/components/larp/auth-flow";
 
@@ -13,18 +14,27 @@ const mocks = vi.hoisted(() => ({
   signedIn: false,
   pending: false,
   error: null as Error | null,
+  onSuccess: undefined as
+    | undefined
+    | ((
+        result: { firstCompletion: boolean; learningTrack: string },
+        input: OnboardingAnswers,
+      ) => void),
 }));
 vi.mock("~/lib/analytics", () => ({ trackEvent: mocks.track }));
 vi.mock("~/trpc/react", () => ({
   api: {
     learning: {
       completeOnboarding: {
-        useMutation: () => ({
-          mutate: mocks.mutate,
-          reset: mocks.reset,
-          isPending: mocks.pending,
-          error: mocks.error,
-        }),
+        useMutation: (options: { onSuccess: typeof mocks.onSuccess }) => {
+          mocks.onSuccess = options.onSuccess;
+          return {
+            mutate: mocks.mutate,
+            reset: mocks.reset,
+            isPending: mocks.pending,
+            error: mocks.error,
+          };
+        },
       },
     },
   },
@@ -54,7 +64,7 @@ afterEach(() => {
 });
 it("keeps both answers when going back and submits only after both questions", async () => {
   const user = userEvent.setup();
-  render(createElement(Onboarding, { next: "/" }));
+  render(createElement(Onboarding));
   const continueButton = screen.getByRole("button", { name: "Continue" });
   expect((continueButton as HTMLButtonElement).disabled).toBe(true);
   await user.click(
@@ -66,7 +76,7 @@ it("keeps both answers when going back and submits only after both questions", a
   );
   expect(
     screen.getByRole<HTMLButtonElement>("button", {
-      name: "Start learning",
+      name: "View my course",
     }).disabled,
   ).toBe(true);
   await user.click(screen.getByRole("radio", { name: "Prefer not to say" }));
@@ -77,7 +87,7 @@ it("keeps both answers when going back and submits only after both questions", a
       .getAttribute("aria-checked"),
   ).toBe("true");
   await user.click(screen.getByRole("button", { name: "Continue" }));
-  await user.click(screen.getByRole("button", { name: "Start learning" }));
+  await user.click(screen.getByRole("button", { name: "View my course" }));
   expect(mocks.mutate).toHaveBeenCalledExactlyOnceWith({
     learningTrack: "javascript",
     referralSource: "prefer_not_to_say",
@@ -86,12 +96,12 @@ it("keeps both answers when going back and submits only after both questions", a
 it("shows a recoverable save error", async () => {
   const user = userEvent.setup();
   mocks.error = new Error("network");
-  render(createElement(Onboarding, { next: "/" }));
+  render(createElement(Onboarding));
   expect(screen.getByRole("alert").textContent).toContain("Please try again");
   await user.click(screen.getByRole("radio", { name: /HTML Start/ }));
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await user.click(screen.getByRole("radio", { name: "YouTube" }));
-  await user.click(screen.getByRole("button", { name: "Start learning" }));
+  await user.click(screen.getByRole("button", { name: "View my course" }));
   expect(mocks.mutate).toHaveBeenCalledWith({
     learningTrack: "html",
     referralSource: "youtube",
@@ -146,4 +156,17 @@ it("leaves the verification screen as soon as the session becomes active", async
   );
   expect(screen.getByRole("status").textContent).toContain("You’re signed in");
   expect(screen.queryByTestId("sign-in")).toBeNull();
+});
+
+it("opens the selected course overview after onboarding", () => {
+  const replace = vi.fn();
+  const browserWindow = Object.create(window) as Window;
+  Object.defineProperty(browserWindow, "location", { value: { replace } });
+  vi.stubGlobal("window", browserWindow);
+  render(createElement(Onboarding));
+  mocks.onSuccess!(
+    { firstCompletion: true, learningTrack: "css" },
+    { learningTrack: "css", referralSource: "friend" },
+  );
+  expect(replace).toHaveBeenCalledExactlyOnceWith("/courses/css");
 });
