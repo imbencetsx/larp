@@ -93,17 +93,8 @@ test("API rejects cross-site, non-JSON, oversized, and over-batched requests", a
   ).toBe(400);
 });
 
-test("guest cookies are signed and dashboard cards keep artwork without icons", async ({
-  page,
-  context,
-}) => {
+test("dashboard cards keep artwork without icons", async ({ page }) => {
   await page.goto("/");
-  const cookie = (await context.cookies()).find(
-    (cookie) => cookie.name === "larp_guest",
-  )!;
-  expect(cookie.httpOnly).toBe(true);
-  expect(cookie.sameSite).toBe("Lax");
-  expect(cookie.value).toMatch(/^v1\.[\da-f-]+\.\d+\.[-_a-zA-Z0-9]+$/);
   await expect(page.locator(".dashboard-courses .track-card")).toHaveCount(5);
   await expect(page.locator(".dashboard-courses .track-icon")).toHaveCount(0);
   await expect(page.locator(".dashboard-courses svg")).toHaveCount(0);
@@ -117,11 +108,4 @@ test("guest cookies are signed and dashboard cards keep artwork without icons", 
       (image) => image.includes("/artwork/") && image.includes("-scene.svg"),
     ),
   ).toBe(true);
-  await context.addCookies([{ ...cookie, value: crypto.randomUUID() }]);
-  await page.reload();
-  const rotated = (await context.cookies()).find(
-    (value) => value.name === "larp_guest",
-  )!;
-  expect(rotated.value).not.toBe(cookie.value);
-  expect(rotated.value).toMatch(/^v1\./);
 });

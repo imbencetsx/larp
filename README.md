@@ -28,9 +28,9 @@ CLERK_SECRET_KEY="your Clerk secret key"
 
 Restart the dev server after adding keys. The actual Clerk sign-up, sign-in, account, and sign-out UI will then be available. Configure any desired social providers in Clerk itself. See the [official Clerk App Router quickstart](https://clerk.com/docs/nextjs/getting-started/quickstart).
 
-Without both keys, LARP works in explicitly labeled **guest mode**. A random, HTTP-only session cookie links a browser to its database-backed drafts, attempts, progress, and preferences. It is not a simulated Clerk login. Clearing or losing that cookie loses access to the guest session; signing in merges its progress into the account without counting completed lessons twice. A signed-in user's data is scoped to the Clerk user ID verified on the server.
+Sign-in is required for all learning pages and learning API requests. Without both Clerk keys, learning remains unavailable and the sign-in page shows an availability message. Existing signed guest cookies are only used to transfer earlier guest progress into an account after sign-in; new guest sessions are no longer created.
 
-Clerk keys were not supplied during implementation. Guest learning and account authorization boundaries are tested; real Clerk sign-up/sign-in requires your configured application.
+Browser tests for learning features need an authenticated Clerk session. Set `PLAYWRIGHT_STORAGE_STATE` to a Playwright storage-state JSON file saved after signing in to the configured local Clerk application. Keep this file outside the repository because it contains session credentials. The authentication tests use an empty session to verify redirects and rejected API requests.
 
 ## What is included
 
