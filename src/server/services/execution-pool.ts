@@ -59,12 +59,13 @@ class ExecutionPool {
         this.drain();
       },
     );
-    worker.on("error", () =>
+    worker.on("error", (error) => {
+      console.error("Simulator worker failed:", error);
       this.remove(
         slot,
-        "Execution stopped because the simulator exceeded its limits.",
-      ),
-    );
+        "The simulator could not start. Please try again shortly.",
+      );
+    });
     worker.on("exit", () =>
       this.remove(slot, "The simulator restarted. Please run again."),
     );
