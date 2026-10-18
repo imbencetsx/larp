@@ -35,7 +35,7 @@ export function Garden() {
         <CardPanel>
           <div className="garden-scene-heading">
             <div>
-              <h2>{data?.profile.plantName ?? "Sprout"}</h2>
+              <h2>{data?.profile.gardenName ?? "Sprout"}</h2>
               <p>One course. One flower. A garden that grows with you.</p>
             </div>
             <GrowthGuide />

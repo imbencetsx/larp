@@ -402,7 +402,7 @@
   max-width: 420px;
   min-width: 0;
 }
-.garden-strip .plant-name {
+.garden-strip .garden-name {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -2009,7 +2009,7 @@
   .garden-strip [data-slot="card-panel"] > svg:last-child {
     margin-left: auto;
   }
-  .garden-strip .plant-name {
+  .garden-strip .garden-name {
     gap: 8px;
   }
   .garden-hero-content > .lesson-progress {
@@ -2280,4 +2280,228 @@
   .choice-tile { padding: 16px; gap: 12px; aspect-ratio: auto; min-height: 180px; }
   .choice-tile .onboarding-choice-description { font-size: 13px; }
   .onboarding-referrals .choice-tile { aspect-ratio: 1; min-height: 0; }
+}
+
+.learning-overview { margin-top: 30px; }
+.garden-name h3 { overflow-wrap: anywhere; }
+
+/* Landscape artwork is reserved for the continue-learning banner. */
+.biome-html { --course-biome: url("/artwork/biomes/html-v2.webp"); }
+.biome-css { --course-biome: url("/artwork/biomes/css-v2.webp"); }
+.biome-javascript { --course-biome: url("/artwork/biomes/javascript-v2.webp"); }
+.biome-typescript { --course-biome: url("/artwork/biomes/typescript-v2.webp"); }
+.biome-nextjs { --course-biome: url("/artwork/biomes/nextjs-v2.webp"); }
+.course-resume {
+  overflow: hidden;
+  border-radius: 8px;
+  color: #f7f4ed;
+  background-color: #152222;
+  background-image: var(--course-biome);
+  background-size: cover;
+  background-position: center;
+  image-rendering: pixelated;
+}
+.course-resume > [data-slot="card-panel"] {
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(24px, 4vw, 44px);
+}
+.course-resume-progress {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  width: 220px;
+  max-width: 100%;
+  margin-bottom: 28px;
+}
+.course-resume-progress [data-slot="progress-track"] { flex: 1; height: 8px; background: rgb(247 244 237 / 30%); border-radius: 2px; }
+.course-resume-progress [data-slot="progress-indicator"] { background: #f7f4ed; }
+.course-resume-progress [data-slot="progress-value"] { font-size: 16px; }
+.course-resume .eyebrow { color: #e3e7dc; }
+.course-resume h3 { font-family: var(--font-tiny); font-size: clamp(36px, 5vw, 48px); line-height: 1.1; margin-top: 8px; }
+.course-resume-next { font-size: 17px; line-height: 1.5; margin-top: 16px; max-width: 480px; text-wrap: pretty; }
+.course-resume-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.course-resume-actions [data-slot="button"] { min-height: 44px; }
+.course-resume-actions .course-resume-view { color: #f7f4ed; background: rgb(10 20 28 / 30%); }
+.course-resume-actions .course-resume-view:hover { background: rgb(10 20 28 / 65%); }
+.learning-total { margin-top: 12px; color: var(--muted-foreground); font-size: 13px; }
+@media (max-width: 650px) {
+  .course-resume { background-position: 65% center; background-image: var(--course-biome); }
+  .course-resume > [data-slot="card-panel"] { min-height: 350px; padding: 24px; }
+  .course-resume-next { font-size: 16px; }
+  .course-resume-actions { gap: 8px; }
+}
+
+.course-resume { position: relative; isolation: isolate; }
+.animated-biome { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; pointer-events: none; opacity: 0; image-rendering: pixelated; z-index: -2; }
+.animated-biome[data-ready="true"] { opacity: 1; }
+.course-resume::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(90deg, rgb(10 20 28 / 88%) 0%, rgb(10 20 28 / 70%) 38%, rgb(10 20 28 / 25%) 70%, rgb(10 20 28 / 8%) 100%); }
+@media (max-width: 650px) { .animated-biome { object-position: 65% center; } .course-resume::after { background: linear-gradient(90deg, rgb(10 20 28 / 88%), rgb(10 20 28 / 65%)); } }
+
+.continue-carousel { margin-bottom: 32px; }
+.continue-carousel-arrows { display: flex; gap: 6px; }
+.continue-carousel-arrows [data-slot="button"] { min-width: 44px; min-height: 44px; padding: 8px; }
+.continue-carousel-indicators { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+.continue-carousel-dot { display: grid; place-items: center; width: 44px; height: 44px; cursor: pointer; }
+.continue-carousel-dot span { display: block; width: 10px; height: 10px; border: 1px solid var(--muted-foreground); border-radius: 0; background: transparent; }
+.continue-carousel-dot[aria-current="true"] span { border-color: var(--primary); background: var(--primary); }
+.continue-carousel-dot:hover span { border-color: var(--primary); }
+.continue-carousel-dot:focus-visible { outline: 2px solid var(--ring); outline-offset: -5px; }
+.course-resume-next strong { font-weight: 500; }
+
+.continue-carousel .course-resume { animation: course-slide-enter 240ms steps(4, end); }
+@keyframes course-slide-enter { from { opacity: .7; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .continue-carousel .course-resume { animation: none; } }
+
+/* Nine-slice frames keep every corner on the pixel grid at any surface size.
+   A matching cutout removes background paint from the stepped corner notches. */
+:root {
+  --pixel-frame-neutral: url("/artwork/borders/neutral-soft.svg");
+  --pixel-frame-input: url("/artwork/borders/input-soft.svg");
+  --pixel-frame-primary: url("/artwork/borders/primary-soft.svg");
+  --pixel-frame-focus: url("/artwork/borders/focus.svg");
+  --pixel-frame-danger: url("/artwork/borders/danger-soft.svg");
+  --pixel-frame-success: url("/artwork/borders/success-soft.svg");
+  --pixel-frame-warning: url("/artwork/borders/warning-soft.svg");
+  --pixel-frame-info: url("/artwork/borders/info-soft.svg");
+}
+:is(
+  [data-slot="card"], [data-slot="card-frame"], [data-slot="button"],
+  [data-slot="badge"], [data-slot="alert"], [data-slot="input-control"],
+  [data-slot="textarea-control"], [data-slot="input-group"],
+  [data-slot="select-trigger"], [data-slot="select-button"],
+  [data-slot="combobox-input-group"], [data-slot="autocomplete-input-group"],
+  [data-slot$="-popup"], [data-slot="tooltip-content"], [data-slot="toast-root"],
+  [data-slot="tabs-tab"], [data-slot="tab-indicator"],
+  [data-slot="checkbox"], [data-slot="radio"]:not(.pixel-radio),
+  [data-slot="switch"], [data-slot="switch-thumb"], [data-slot="toggle"],
+  .onboarding-choice, .track-detail-hero, .chapter-nav a,
+  .code-help-example pre, .preview-frame, .check-circle,
+  .border:not([data-slot]),
+  .cl-cardBox, .cl-userButtonPopoverCard, .cl-formFieldInput,
+  .cl-formButtonPrimary, .cl-socialButtonsBlockButton
+) {
+  --pixel-unit: 1px;
+  --pixel-frame: none;
+  --pixel-cutout: polygon(
+    calc(4 * var(--pixel-unit)) 0, calc(100% - 4 * var(--pixel-unit)) 0,
+    calc(100% - 4 * var(--pixel-unit)) var(--pixel-unit), calc(100% - 2 * var(--pixel-unit)) var(--pixel-unit),
+    calc(100% - 2 * var(--pixel-unit)) calc(2 * var(--pixel-unit)), calc(100% - var(--pixel-unit)) calc(2 * var(--pixel-unit)),
+    calc(100% - var(--pixel-unit)) calc(4 * var(--pixel-unit)), 100% calc(4 * var(--pixel-unit)),
+    100% calc(100% - 4 * var(--pixel-unit)), calc(100% - var(--pixel-unit)) calc(100% - 4 * var(--pixel-unit)),
+    calc(100% - var(--pixel-unit)) calc(100% - 2 * var(--pixel-unit)), calc(100% - 2 * var(--pixel-unit)) calc(100% - 2 * var(--pixel-unit)),
+    calc(100% - 2 * var(--pixel-unit)) calc(100% - var(--pixel-unit)), calc(100% - 4 * var(--pixel-unit)) calc(100% - var(--pixel-unit)),
+    calc(100% - 4 * var(--pixel-unit)) 100%, calc(4 * var(--pixel-unit)) 100%,
+    calc(4 * var(--pixel-unit)) calc(100% - var(--pixel-unit)), calc(2 * var(--pixel-unit)) calc(100% - var(--pixel-unit)),
+    calc(2 * var(--pixel-unit)) calc(100% - 2 * var(--pixel-unit)), var(--pixel-unit) calc(100% - 2 * var(--pixel-unit)),
+    var(--pixel-unit) calc(100% - 4 * var(--pixel-unit)), 0 calc(100% - 4 * var(--pixel-unit)),
+    0 calc(4 * var(--pixel-unit)), var(--pixel-unit) calc(4 * var(--pixel-unit)),
+    var(--pixel-unit) calc(2 * var(--pixel-unit)), calc(2 * var(--pixel-unit)) calc(2 * var(--pixel-unit)),
+    calc(2 * var(--pixel-unit)) var(--pixel-unit), calc(4 * var(--pixel-unit)) var(--pixel-unit)
+  );
+  border-radius: 0;
+  border-image-source: var(--pixel-frame);
+  border-image-slice: 4;
+  border-image-width: calc(4 * var(--pixel-unit));
+  border-image-repeat: stretch;
+  clip-path: var(--pixel-cutout);
+}
+:is([data-slot="card"], [data-slot="card-frame"], [data-slot="alert"], [data-slot$="-popup"], [data-slot="tooltip-content"], [data-slot="toast-root"], .onboarding-choice, .track-detail-hero, .chapter-nav a, .code-help-example pre, .preview-frame, .check-circle, .border:not([data-slot])) {
+  --pixel-frame: var(--pixel-frame-neutral);
+}
+:is([data-slot="card"], [data-slot="card-frame"], [data-slot$="-popup"], .choice-tile, .track-detail-hero)[class] { --pixel-unit: 2px; }
+:is([data-slot="input-control"], [data-slot="textarea-control"], [data-slot="input-group"], [data-slot="select-trigger"], [data-slot="select-button"], [data-slot="combobox-input-group"], [data-slot="autocomplete-input-group"], [data-slot="button"][data-variant="outline"], [data-slot="badge"][data-variant="outline"]) { --pixel-frame: var(--pixel-frame-input); }
+[data-slot="button"][data-variant="default"] { --pixel-frame: var(--pixel-frame-primary); }
+:is([data-slot="button"][data-variant^="destructive"], [data-slot="alert"][data-variant="error"]) { --pixel-frame: var(--pixel-frame-danger); }
+[data-slot="alert"][data-variant="success"] { --pixel-frame: var(--pixel-frame-success); }
+[data-slot="alert"][data-variant="warning"] { --pixel-frame: var(--pixel-frame-warning); }
+[data-slot="alert"][data-variant="info"] { --pixel-frame: var(--pixel-frame-info); }
+/* Keep media and its gradient behind the frame, including animated canvases. */
+[data-slot="card"]::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  pointer-events: none;
+  border: 1px solid transparent;
+  border-radius: 0;
+  border-image: inherit;
+  box-shadow: none;
+  clip-path: var(--pixel-cutout);
+}
+:is([data-slot="card"], .onboarding-choice, .chapter-nav a):hover { --pixel-frame: var(--pixel-frame-input); }
+.onboarding-choice[data-selected] { --pixel-frame: var(--pixel-frame-primary); }
+/* The focus treatment sits inside the cutout so it cannot be clipped away. */
+:is([data-slot="button"], [data-slot="select-trigger"], [data-slot="select-button"], [data-slot="tabs-tab"], .chapter-nav a, .border:not([data-slot])):focus-visible,
+:is([data-slot="input-control"], [data-slot="textarea-control"], [data-slot="input-group"], [data-slot="combobox-input-group"], [data-slot="autocomplete-input-group"], .onboarding-choice):has(:focus-visible) {
+  --pixel-frame: var(--pixel-frame-focus);
+  box-shadow: inset 0 0 0 2px var(--ring);
+}
+[data-slot="card"]:focus-visible { --pixel-frame: var(--pixel-frame-focus); box-shadow: inset 0 0 0 2px var(--ring); }
+:is([data-slot="input-control"], [data-slot="textarea-control"], [data-slot="input-group"]):has([aria-invalid="true"]),
+:is([data-slot="select-trigger"], [data-slot="select-button"])[aria-invalid="true"] { --pixel-frame: var(--pixel-frame-danger); }
+:is([data-slot="input"], [data-slot="textarea"], [data-slot="progress-track"], [data-slot="progress-indicator"]) { border-radius: 0; }
+
+:is(.cl-cardBox, .cl-userButtonPopoverCard)[class] { --pixel-unit: 2px; --pixel-frame: var(--pixel-frame-neutral); }
+:is(.cl-formFieldInput, .cl-socialButtonsBlockButton)[class] { --pixel-frame: var(--pixel-frame-input); }
+.cl-formButtonPrimary[class] { --pixel-frame: var(--pixel-frame-primary); }
+.cl-card { border-radius: 0; }
+:is(.cl-formFieldInput, .cl-formButtonPrimary, .cl-socialButtonsBlockButton):focus-visible { --pixel-frame: var(--pixel-frame-focus); box-shadow: inset 0 0 0 2px var(--ring); }
+
+:is([data-slot="checkbox"], [data-slot="radio"]:not(.pixel-radio), [data-slot="switch"])[class] { --pixel-frame: var(--pixel-frame-input); }
+:is([data-slot="checkbox"], [data-slot="radio"]:not(.pixel-radio), [data-slot="switch"])[data-checked] { --pixel-frame: var(--pixel-frame-primary); }
+:is([data-slot="checkbox"], [data-slot="radio"]:not(.pixel-radio), [data-slot="switch"], [data-slot="toggle"]):focus-visible { --pixel-frame: var(--pixel-frame-focus); box-shadow: inset 0 0 0 2px var(--ring); }
+[data-slot="radio"]:not(.pixel-radio) [data-slot="radio-indicator"],
+[data-slot="radio"]:not(.pixel-radio) [data-slot="radio-indicator"]::before { border-radius: 0; }
+
+/* Soft pressed-pixel depth: a small lower lip and a one-pixel lit edge. */
+:is([data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]), .cl-formButtonPrimary, .cl-socialButtonsBlockButton) {
+  --button-focus: inset 0 0 0 0 transparent;
+  --button-lip: 3px;
+  box-shadow: var(--button-focus), inset 0 1px 0 rgb(255 255 255 / 18%), inset 1px 0 0 rgb(255 255 255 / 5%), inset 0 calc(-1 * var(--button-lip)) 0 rgb(0 0 0 / 22%), inset -1px 0 0 rgb(0 0 0 / 10%);
+  transform: translateY(0);
+  transition: transform 100ms steps(2, end), box-shadow 100ms ease-out, filter 100ms ease-out;
+}
+:is([data-slot="button"][data-variant="outline"], [data-slot="button"][data-variant="secondary"], [data-slot="button"][data-variant="destructive-outline"], .cl-socialButtonsBlockButton) { --button-lip: 2px; }
+:is([data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]), .cl-formButtonPrimary, .cl-socialButtonsBlockButton)::before {
+  inset: 0;
+  border-radius: 0;
+  box-shadow: none;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  :is([data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]), .cl-formButtonPrimary, .cl-socialButtonsBlockButton):not(:disabled):not([aria-disabled="true"]):hover {
+    transform: translateY(-1px);
+    filter: brightness(1.035);
+  }
+}
+:is([data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]), .cl-formButtonPrimary, .cl-socialButtonsBlockButton):not(:disabled):not([aria-disabled="true"]):is(:active, [data-pressed]) {
+  transform: translateY(2px);
+  filter: brightness(.98);
+  box-shadow: var(--button-focus), inset 0 1px 0 rgb(0 0 0 / 14%), inset 0 -1px 0 rgb(0 0 0 / 12%);
+}
+:is([data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]), .cl-formButtonPrimary, .cl-socialButtonsBlockButton):focus-visible { --button-focus: inset 0 0 0 2px var(--ring); }
+:is([data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]), .cl-formButtonPrimary, .cl-socialButtonsBlockButton):is(:disabled, [aria-disabled="true"]) {
+  transform: none;
+  filter: none;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), inset 0 -1px 0 rgb(0 0 0 / 10%);
+}
+/* Non-button surfaces keep only a faint edge, leaving the depth to buttons. */
+[data-slot="card"]::before { box-shadow: inset 0 1px 0 rgb(255 255 255 / 2%), inset 0 -1px 0 rgb(0 0 0 / 4%); }
+:is([data-slot="input-control"], [data-slot="textarea-control"], [data-slot="input-group"], [data-slot="select-trigger"], [data-slot="select-button"]) {
+  box-shadow: inset 0 1px 0 rgb(0 0 0 / 6%), inset 0 -1px 0 rgb(255 255 255 / 2%);
+}
+:is([data-slot="button"][data-variant="ghost"], [data-slot="button"][data-variant="link"]):not(:disabled):active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) {
+  :is([data-slot="button"], .cl-formButtonPrimary, .cl-socialButtonsBlockButton) { transition: none; }
+}
+
+/* Preserve the approved button bevels while other surfaces use softer frames. */
+:is([data-slot="button"], .cl-formButtonPrimary, .cl-socialButtonsBlockButton) {
+  --pixel-frame-primary: url("/artwork/borders/primary.svg");
+  --pixel-frame-input: url("/artwork/borders/input.svg");
+  --pixel-frame-danger: url("/artwork/borders/danger.svg");
 }

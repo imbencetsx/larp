@@ -1,4 +1,4 @@
-import { onboardingInput } from "~/lib/onboarding";
+import { gardenNameInput, onboardingInput } from "~/lib/onboarding";
 import { completeOnboarding } from "~/server/services/onboarding";
 import { courseEnrollmentInput } from "~/lib/course-enrollment";
 import { z } from "zod";
@@ -129,7 +129,7 @@ export const learningRouter = createTRPCRouter({
   settings: initialized
     .input(
       z.object({
-        plantName: z.string().trim().min(1).max(30),
+        gardenName: gardenNameInput,
         dailyGoal: z.number().int().min(1).max(5),
       }),
     )

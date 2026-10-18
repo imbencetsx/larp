@@ -17,7 +17,8 @@ export const posts = createTable("post", {
 export const users = createTable("user", {
   id: text().primaryKey(),
   name: text().notNull().default("Learner"),
-  plantName: text().notNull().default("Sprout"),
+  // Keep the existing column so saved names survive the terminology change.
+  gardenName: text("plantName").notNull().default("Sprout"),
   dailyGoal: integer().notNull().default(1),
   learningTrack: text({
     enum: ["html", "css", "javascript", "typescript", "nextjs"],

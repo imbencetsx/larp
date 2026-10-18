@@ -42,6 +42,7 @@ it("requires recognized onboarding answers, including a private referral option"
     onboardingInput.safeParse({
       learningTrack: "css",
       referralSource: "prefer_not_to_say",
+      gardenName: "The green patch",
     }).success,
   ).toBe(true);
   expect(
@@ -54,4 +55,17 @@ it("requires recognized onboarding answers, including a private referral option"
     onboardingInput.safeParse({ learningTrack: "html", referralSource: "" })
       .success,
   ).toBe(false);
+});
+
+it("trims garden names and rejects empty or overly long names", () => {
+  const answers = { learningTrack: "html", referralSource: "friend" };
+  expect(
+    onboardingInput.parse({ ...answers, gardenName: "  My garden  " })
+      .gardenName,
+  ).toBe("My garden");
+  for (const gardenName of ["", "   ", "a".repeat(31)]) {
+    expect(onboardingInput.safeParse({ ...answers, gardenName }).success).toBe(
+      false,
+    );
+  }
 });

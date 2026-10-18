@@ -103,18 +103,18 @@ test("save drafts, use conceptual code help, and persist settings", async ({
   await expect(help.locator(".snippet, button")).toHaveCount(0);
   await page.goto("/settings");
   await expect(page.getByLabel("Your name", { exact: true })).toHaveCount(0);
-  await page.getByLabel("Your plant’s name").fill("Fernanda");
+  await page.getByLabel("Your garden’s name").fill("Fernanda");
   await page.getByRole("combobox").click();
   await page.getByRole("option", { name: "2 lessons a day" }).click();
   await page.getByRole("button", { name: "Save preferences" }).click();
   await expect(page.getByText("Preferences saved.")).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Your plant’s name")).toHaveValue("Fernanda");
+  await expect(page.getByLabel("Your garden’s name")).toHaveValue("Fernanda");
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Let’s build.",
   );
-  await expect(page.locator(".plant-name")).toContainText("Fernanda");
+  await expect(page.locator(".garden-name")).toContainText("Fernanda");
 });
 
 test("beginner HTML help explains literal tags on desktop and mobile", async ({
