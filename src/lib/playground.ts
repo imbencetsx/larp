@@ -144,7 +144,8 @@ export function readPlaygroundFiles(
       files?: unknown;
     } | null;
     if (
-      parsed?.format === "larp-files-v1" &&
+      (parsed?.format === "larp-files-v1" ||
+        parsed?.format === "larp-files-v2") &&
       parsed.files &&
       typeof parsed.files === "object" &&
       !Array.isArray(parsed.files)

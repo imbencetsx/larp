@@ -83,6 +83,9 @@ describe("authored curriculum", () => {
     it(`${lesson.id}: does not award completion for its starter`, async () => {
       const result = await validateExercise(lesson.id, lesson.starter);
       expect(result.passed).toBe(false);
+      if (lesson.kind !== "quiz") expect(lesson.starter).toBe("");
+      if (lesson.track === "html" && lesson.kind !== "quiz")
+        expect(result.checks.filter((check) => check.passed)).toEqual([]);
     });
     if (lesson.kind !== "quiz") {
       it(`${lesson.id}: teaching examples leave the exercise to the learner`, async () => {

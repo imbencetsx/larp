@@ -1,4 +1,8 @@
-import { fillCode, expectCodeValue } from "./editor-helpers";
+import {
+  fillCode,
+  expectCodeValue,
+  fillLessonSolution,
+} from "./editor-helpers";
 import { test, expect } from "@playwright/test";
 import { getLesson } from "../../src/content/curriculum";
 
@@ -117,10 +121,7 @@ test("a multi-file Next.js app simulates imports and exports a complete ZIP", as
 }) => {
   const lesson = getLesson("nextjs-31")!;
   await page.goto("/learn/nextjs/31");
-  await fillCode(
-    page.getByRole("textbox", { name: "Code editor for app/page.tsx" }),
-    lesson.solution,
-  );
+  await fillLessonSolution(page, lesson);
   await page.getByRole("tab", { name: "lib/tasks.ts", exact: true }).click();
   await expect(
     page.getByRole("textbox", { name: "Code editor for lib/tasks.ts" }),
@@ -132,7 +133,6 @@ test("a multi-file Next.js app simulates imports and exports a complete ZIP", as
     .getByRole("button", { name: "Simulate a click", exact: true })
     .click();
   await expect(app.getByRole("status")).toHaveText("2 tasks left");
-  await page.getByRole("tab", { name: "Ship", exact: true }).click();
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download project ZIP" }).click();
   const download = await pending;
