@@ -37,6 +37,10 @@ export type Lesson = {
   task: string;
   requirements: string[];
   starter: string;
+  /** Exact older scaffold, used only to upgrade untouched saved starters. */
+  legacyStarter?: string;
+  legacyFiles?: Record<string, string>;
+  buildFiles?: Record<string, string>;
   solution: string;
   hints: string[];
   recap: string;

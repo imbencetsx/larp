@@ -1,4 +1,8 @@
-import { fillCode, expectCodeValue } from "./editor-helpers";
+import {
+  fillCode,
+  expectCodeValue,
+  fillLessonSolution,
+} from "./editor-helpers";
 import { test, expect, type Page } from "@playwright/test";
 import { lessons, type Lesson } from "../../src/content/curriculum";
 
@@ -27,7 +31,7 @@ async function completeLesson(page: Page, lesson: Lesson, navigate = true) {
       name: `Code editor for ${lesson.filename}`,
     });
     await expect(editor).toBeVisible();
-    await fillCode(editor, lesson.solution);
+    await fillLessonSolution(page, lesson);
     await page.getByRole("button", { name: "Submit", exact: true }).click();
     await expect(page.getByText("All checks passed.")).toBeVisible();
   }
@@ -82,25 +86,18 @@ test("save drafts, use conceptual code help, and persist settings", async ({
   await expect(page.locator(".save-status")).toHaveText("All changes saved");
   await page.reload();
   await expectCodeValue(editor, 'const myDraft = "a little progress";');
-  await page.getByRole("button", { name: "Show hint" }).click();
-  await expect(page.locator(".hint-text")).toHaveCount(1);
-  await page.getByRole("tab", { name: "Code help", exact: true }).click();
-  const help = page.locator(".code-help-content");
+  const guide = page.getByRole("region", {
+    name: "Step-by-step guide",
+    exact: true,
+  });
   await expect(
-    help.getByRole("heading", { name: "How to use it" }),
+    guide.getByText("Set up your workspace", { exact: true }),
   ).toBeVisible();
-  await expect(help.locator("dt")).toHaveText([
-    "Variables, strings, and numbers",
-    "Template literals and console.log",
-  ]);
-  await expect(help.locator("pre")).toContainText('const city = "Oslo"');
+  await expect(guide.locator(".guide-step")).toHaveCount(5);
+  await expect(guide.locator("pre").first()).toBeVisible();
   await expect(
-    help.getByRole("heading", { name: "What each part means" }),
-  ).toBeVisible();
-  await expect(
-    help.getByRole("heading", { name: "Try it yourself" }),
-  ).toBeVisible();
-  await expect(help.locator(".snippet, button")).toHaveCount(0);
+    page.getByRole("tab", { name: /^(Read|Code help)$/ }),
+  ).toHaveCount(0);
   await page.goto("/settings");
   await expect(page.getByLabel("Your name", { exact: true })).toHaveCount(0);
   await page.getByLabel("Your garden’s name").fill("Fernanda");
@@ -112,28 +109,36 @@ test("save drafts, use conceptual code help, and persist settings", async ({
   await expect(page.getByLabel("Your garden’s name")).toHaveValue("Fernanda");
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Let’s build.",
+    "Your learning.",
   );
   await expect(page.locator(".garden-name")).toContainText("Fernanda");
 });
 
-test("beginner HTML help explains literal tags on desktop and mobile", async ({
+test("HTML is built from a single thorough guide on desktop and mobile", async ({
   page,
 }) => {
   await page.goto("/learn/html/1");
-  await page.getByRole("tab", { name: "Code help", exact: true }).click();
-  const help = page.locator(".code-help-content");
-  await expect(help.locator("pre code").nth(1)).toHaveText(
-    "<h1>Weekend notes</h1>",
+  const guide = page.getByRole("region", {
+    name: "Step-by-step guide",
+    exact: true,
+  });
+  await expect(guide.locator(".guide-step")).toHaveCount(5);
+  await expect(guide.locator("pre code").first()).toContainText(
+    "<!DOCTYPE html>",
   );
-  await expect(help).toContainText("The slash marks the closing tag.");
-  await expect(help).toContainText(
-    "Put visible headings inside body, not head.",
-  );
+  await expect(guide).toContainText("Hello, LARP!");
+  await expect(guide).toContainText("Before you move on");
+  await expect(
+    page.getByRole("tab", { name: /^(Read|Code help)$/ }),
+  ).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Lesson & hints" }).click();
-  await expect(page.getByRole("dialog").locator("pre code").nth(1)).toHaveText(
-    "<h1>Weekend notes</h1>",
+  await page
+    .getByRole("button", { name: "Step-by-step guide", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".guide-step")).toHaveCount(5);
+  await expect(dialog).toContainText(
+    "Put an h1 saying Hello, LARP! inside body",
   );
 });
 

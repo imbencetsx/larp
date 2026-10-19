@@ -17,7 +17,10 @@ const formatted = formattedCode as unknown as {
 };
 export const { defaultFixture, portfolioFixture, appStyles } =
   formatted.$workspace ?? rawWorkspaceExamples;
-type SavedFiles = { format: "larp-files-v1"; files: Record<string, string> };
+type SavedFiles = {
+  format: "larp-files-v1" | "larp-files-v2";
+  files: Record<string, string>;
+};
 export function initialFiles(lesson: Lesson): Record<string, string> {
   const files: Record<string, string> = {
     ...lesson.files,
@@ -30,8 +33,7 @@ export function initialFiles(lesson: Lesson): Record<string, string> {
         ? portfolioFixture
         : defaultFixture
       ).replaceAll('href="styles.css"', `href="${lesson.filename}"`);
-  if (lesson.track === "html")
-    files["styles.css"] = "/* Add optional styles for your page. */";
+  if (lesson.track === "html") files["styles.css"] = "";
   if (
     lesson.fixture &&
     (lesson.track === "javascript" || lesson.track === "typescript")
@@ -48,10 +50,22 @@ export function readFiles(
   const defaults = initialFiles(lesson);
   const raw = rawLessons.find((item) => item.id === lesson.id);
   const restore = (name: string, value: string) => {
+    if (name !== lesson.filename && value === lesson.legacyFiles?.[name])
+      return defaults[name]!;
+    if (name === lesson.filename && value === lesson.legacyStarter)
+      return lesson.starter;
     if (name === lesson.filename && value === raw?.starter)
       return lesson.starter;
-    if (name === lesson.filename && value === raw?.solution)
+    if (name === lesson.filename && value === raw?.solution) {
+      try {
+        const reference = JSON.parse(lesson.solution) as SavedFiles;
+        if (reference.format === "larp-files-v2")
+          return reference.files[name] ?? value;
+      } catch {
+        /* Single-file reference implementations are plain source. */
+      }
       return lesson.solution;
+    }
     if (
       value === raw?.files?.[name] ||
       (name === "index.html" && value === raw?.fixture)
@@ -68,14 +82,17 @@ export function readFiles(
   try {
     const parsed = JSON.parse(saved) as Partial<SavedFiles> | null;
     if (
-      parsed?.format === "larp-files-v1" &&
+      (parsed?.format === "larp-files-v1" ||
+        parsed?.format === "larp-files-v2") &&
       parsed.files &&
       typeof parsed.files === "object" &&
       !Array.isArray(parsed.files)
     ) {
       for (const name of Object.keys(defaults)) {
         const value = parsed.files[name];
-        if (typeof value === "string") defaults[name] = restore(name, value);
+        if (typeof value === "string")
+          defaults[name] =
+            parsed.format === "larp-files-v2" ? value : restore(name, value);
       }
       return defaults;
     }
@@ -86,7 +103,7 @@ export function readFiles(
 }
 export function saveFiles(files: Record<string, string>): string {
   return JSON.stringify({
-    format: "larp-files-v1",
+    format: "larp-files-v2",
     files,
   } satisfies SavedFiles);
 }

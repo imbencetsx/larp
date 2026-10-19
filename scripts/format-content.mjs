@@ -1,3 +1,4 @@
+import { lessonOutline } from "./lesson-outline.mjs";
 import { build } from "esbuild";
 import { format } from "prettier";
 import { readFile, writeFile } from "node:fs/promises";
@@ -68,9 +69,20 @@ formatted.$workspace = {
 for (const lesson of rawLessons) {
   const entry = {};
   if (lesson.kind !== "quiz") {
+    entry.legacyStarter = await code(
+      lesson.track === "html"
+        ? htmlDocument(lesson.starter, lesson.title)
+        : lesson.starter,
+      lesson.filename,
+    );
+    entry.buildFiles = {
+      [lesson.filename]: lessonOutline(lesson.starter, lesson.filename),
+    };
     for (const field of ["starter", "solution", "example"]) {
       let source = lesson[field];
-      if (lesson.track === "html") source = htmlDocument(source, lesson.title);
+      if (field === "starter") source = "";
+      else if (lesson.track === "html")
+        source = htmlDocument(source, lesson.title);
       entry[field] = await code(source, lesson.filename);
     }
   }
@@ -85,11 +97,27 @@ for (const lesson of rawLessons) {
     );
   if (lesson.files) {
     entry.files = {};
-    for (const [name, source] of Object.entries(lesson.files))
-      entry.files[name] = await code(
+    entry.legacyFiles = {};
+    const referenceFiles = {};
+    for (const [name, source] of Object.entries(lesson.files)) {
+      const formattedSource = await code(
         name.endsWith(".html") ? htmlDocument(source, lesson.title) : source,
         name,
       );
+      const learnerCode = /\.(?:[cm]?[jt]sx?|css|html)$/.test(name);
+      entry.files[name] = learnerCode ? "" : formattedSource;
+      entry.legacyFiles[name] = formattedSource;
+      referenceFiles[name] = formattedSource;
+      if (learnerCode) entry.buildFiles[name] = lessonOutline(source, name);
+    }
+    entry.solution = JSON.stringify(
+      {
+        format: "larp-files-v2",
+        files: { ...referenceFiles, [lesson.filename]: entry.solution },
+      },
+      null,
+      2,
+    );
   }
   if (lesson.quiz) {
     const extension = {

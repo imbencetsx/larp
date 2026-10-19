@@ -4,16 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "pixelarticons/react/ArrowLeft.js";
 import { ArrowRight } from "pixelarticons/react/ArrowRight.js";
 import { CheckboxOn as CheckCircle2 } from "pixelarticons/react/CheckboxOn.js";
-import { ChevronLeft } from "pixelarticons/react/ChevronLeft.js";
-import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
-import { Lightbulb } from "pixelarticons/react/Lightbulb.js";
 import { Download } from "pixelarticons/react/Download.js";
 import { Button } from "~/components/ui/button";
 import { Card, CardHeader } from "~/components/ui/card";
-import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Kbd } from "~/components/ui/kbd";
 import { Spinner } from "~/components/ui/spinner";
-import { Tabs, TabsList, TabsPanel, TabsTab } from "~/components/ui/tabs";
 import {
   Dialog,
   DialogPopup,
@@ -26,14 +21,8 @@ import {
 import { useMediaQuery } from "~/hooks/use-media-query";
 import { api } from "~/trpc/react";
 import { lessons, tracks, type Lesson } from "~/content/curriculum";
-import { getCodeHelp } from "~/content/code-help";
-import {
-  getCodeHelpExamples,
-  trackIntroductions,
-} from "~/content/code-help-examples";
+import { LearningGuide } from "./learning-guide";
 import { useLearning } from "./learning-provider";
-import { GrowingPlant } from "./growing-plant";
-import { fullBloomStage, getCourseGrowth } from "~/lib/garden";
 import { Badge } from "~/components/ui/badge";
 import { Editor, Preview } from "./code-workspace";
 import type { RunResult } from "~/server/services/validate";
@@ -71,12 +60,9 @@ function LessonContent({
   lesson: Lesson;
   initialCode: string;
 }) {
-  const { data, refresh } = useLearning();
-  const growth = getCourseGrowth(lesson.track, data?.progress);
+  const { refresh } = useLearning();
   const mobile = useMediaQuery("(max-width: 1000px)");
   const [lessonOpen, setLessonOpen] = useState(false);
-  const [instructionTab, setInstructionTab] = useState("task");
-  const [readingStep, setReadingStep] = useState(0);
   const [files, setFiles] = useState(() => readFiles(lesson, initialCode));
   const [activeFile, setActiveFile] = useState(lesson.filename);
   const code = files[lesson.filename]!;
@@ -86,7 +72,6 @@ function LessonContent({
   const [result, setResult] = useState<
     (RunResult & { newlyCompleted: boolean }) | null
   >(null);
-  const [hint, setHint] = useState(0);
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState("All changes saved");
   const { mutate: saveDraft, isPending: saving } =
@@ -110,7 +95,6 @@ function LessonContent({
     return () => clearTimeout(timer);
   }, [draft, dirty, lesson.id, saveDraft]);
   const track = tracks.find((t) => t.id === lesson.track)!;
-  const codeHelpExamples = getCodeHelpExamples(lesson);
   const next = lessons[lessons.findIndex((l) => l.id === lesson.id) + 1];
   const submitCode = async () => {
     if (busy) return;
@@ -172,181 +156,51 @@ function LessonContent({
   const instructions = (
     <Card
       render={<section />}
-      className="workspace-pane instruction-pane"
+      className="workspace-pane instruction-pane lesson-guide-pane"
       aria-label="Lesson instructions"
     >
-      <Tabs
-        value={instructionTab}
-        onValueChange={(v) => setInstructionTab(String(v))}
-        className="instruction-tabs"
+      <CardHeader className="guide-pane-header">
+        <h2>Build it step by step</h2>
+        <span>{lesson.filename}</span>
+      </CardHeader>
+      <div
+        className="guide-scroll"
+        tabIndex={0}
+        role="region"
+        aria-label="Step-by-step guide"
       >
-        <CardHeader className="pane-tabs-header">
-          <TabsList size="sm" aria-label="Lesson content">
-            <TabsTab value="task">Task</TabsTab>
-            <TabsTab value="read">Read</TabsTab>
-            <TabsTab value="example">Code help</TabsTab>
-            {lesson.projectBrief && <TabsTab value="brief">Ship</TabsTab>}
-          </TabsList>
-        </CardHeader>
-        <TabsPanel value="task">
-          <div className="instruction-content">
-            <p className="lesson-objective">{lesson.task}</p>
-            <ul className="requirements">
-              {lesson.requirements.map((r, i) => (
-                <li
-                  key={r}
-                  className={result?.checks[i]?.passed ? "passed" : ""}
-                >
-                  {result?.checks[i]?.passed ? (
-                    <CheckCircle2 aria-hidden="true" />
-                  ) : (
-                    <span className="check-circle" />
-                  )}
-                  {r}
-                </li>
-              ))}
-            </ul>
-            <div
-              className="lesson-plant-growth"
-              aria-label={`${track.plant}: ${growth.stageName}`}
-            >
-              <GrowingPlant
-                variant={tracks.findIndex((t) => t.id === lesson.track)}
-                stage={growth.stage}
-              />
-              <div>
-                <strong>{track.plant}</strong>
-                <span>
-                  {growth.stageName} · {growth.stage + 1}/{fullBloomStage + 1}
-                </span>
-              </div>
-              {growth.bloomed && <Badge variant="success">Bloomed</Badge>}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hint-button"
-              onClick={() =>
-                setHint((h) => Math.min(h + 1, lesson.hints.length))
-              }
-            >
-              <Lightbulb aria-hidden="true" />
-              {hint === lesson.hints.length
-                ? "All hints shown"
-                : hint
-                  ? "Next hint"
-                  : "Show hint"}
-            </Button>
-            {hint > 0 && (
-              <Alert className="hint-text">
-                <Lightbulb />
-                <AlertDescription>{lesson.hints[hint - 1]}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-        </TabsPanel>
+        <LearningGuide lesson={lesson} checks={result?.checks} />
         {lesson.projectBrief && (
-          <TabsPanel value="brief">
-            <div className="instruction-content">
-              <span className="eyebrow">PROJECT REVIEW</span>
-              <h2>Before you ship</h2>
-              <ul className="project-brief">
-                {lesson.projectBrief.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <Button
-                variant="outline"
-                loading={exporter.isPending}
-                onClick={async () => {
-                  setDownloadError(null);
-                  try {
-                    downloadProject(
-                      await exporter.mutateAsync({
-                        lessonId: lesson.id,
-                        code: current.current,
-                      }),
-                      lesson.id,
-                    );
-                  } catch (error) {
-                    setDownloadError(
-                      error instanceof Error
-                        ? error.message
-                        : "Could not export project.",
-                    );
-                  }
-                }}
-              >
-                <Download aria-hidden="true" />
-                Download project ZIP
-              </Button>
-              {downloadError && <p role="alert">{downloadError}</p>}
-            </div>
-          </TabsPanel>
+          <div className="guide-export">
+            <Button
+              variant="outline"
+              loading={exporter.isPending}
+              onClick={async () => {
+                setDownloadError(null);
+                try {
+                  downloadProject(
+                    await exporter.mutateAsync({
+                      lessonId: lesson.id,
+                      code: current.current,
+                    }),
+                    lesson.id,
+                  );
+                } catch (error) {
+                  setDownloadError(
+                    error instanceof Error
+                      ? error.message
+                      : "Could not export project.",
+                  );
+                }
+              }}
+            >
+              <Download aria-hidden="true" />
+              Download project ZIP
+            </Button>
+            {downloadError && <p role="alert">{downloadError}</p>}
+          </div>
         )}
-        <TabsPanel value="read">
-          <div className="instruction-content read-content">
-            <span className="eyebrow">THE CONCEPT</span>
-            <h2>{lesson.objective}</h2>
-            <p className="lesson-paragraph">{lesson.paragraphs[readingStep]}</p>
-            <div className="reading-pagination">
-              <Button
-                variant="outline"
-                size="icon-sm"
-                aria-label="Previous explanation"
-                disabled={readingStep === 0}
-                onClick={() => setReadingStep((s) => s - 1)}
-              >
-                <ChevronLeft aria-hidden="true" />
-              </Button>
-              <span>
-                {readingStep + 1} / {lesson.paragraphs.length}
-              </span>
-              <Button
-                variant="outline"
-                size="icon-sm"
-                aria-label="Next explanation"
-                disabled={readingStep === lesson.paragraphs.length - 1}
-                onClick={() => setReadingStep((s) => s + 1)}
-              >
-                <ChevronRight aria-hidden="true" />
-              </Button>
-            </div>
-          </div>
-        </TabsPanel>
-        <TabsPanel value="example">
-          <div className="instruction-content code-help-content">
-            <h2>How to use it</h2>
-            <p className="code-help-intro">
-              {trackIntroductions[lesson.track]}
-            </p>
-            {codeHelpExamples.map(([code, explanation, tryIt], index) => (
-              <section className="code-help-example" key={code}>
-                <h3>
-                  Small example
-                  {codeHelpExamples.length > 1 ? ` ${index + 1}` : ""}
-                </h3>
-                <pre>
-                  <code>{code}</code>
-                </pre>
-                <h4>What each part means</h4>
-                <p>{explanation}</p>
-                <h4>Try it yourself</h4>
-                <p>{tryIt}</p>
-              </section>
-            ))}
-            <h3>Use the idea in this task</h3>
-            <dl className="code-help-blocks">
-              {getCodeHelp(lesson).map(([name, purpose]) => (
-                <div key={name}>
-                  <dt>{name}</dt>
-                  <dd>{purpose}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </TabsPanel>
-      </Tabs>
+      </div>
     </Card>
   );
   const editor = (
@@ -410,7 +264,7 @@ function LessonContent({
           {mobile && (
             <Dialog open={lessonOpen} onOpenChange={setLessonOpen}>
               <DialogTrigger render={<Button variant="outline" />}>
-                Lesson & hints
+                Step-by-step guide
               </DialogTrigger>
               <DialogPopup className="lesson-dialog">
                 <DialogHeader>

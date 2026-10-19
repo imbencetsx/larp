@@ -47,9 +47,9 @@ The learning dashboard and `/courses` show only explicitly added courses. Onboar
 ## What is included
 
 - Five learning paths: HTML, CSS, JavaScript, TypeScript, and Next.js.
-- Ten complete lessons per path, fifty in total. Each includes a worked example, copyable snippet, guided explanation, starter code, a project-based exercise, progressive hints, server-side checks, and a recap. Each path builds toward a small capstone.
+- Ten complete lessons per path, fifty in total. Each coding lesson has one step-by-step build guide with explanations, small patterns to adapt, and checkpoints alongside the relevant action. Every coding course opens with an empty entry file. Project implementation files are empty too; setup configuration and preview fixtures remain available. The guide teaches the required declarations and file structure before the build steps. Completion requires passing server-side submission checks. Each path builds toward a small capstone.
 - A dashboard, course overviews, lesson workspace, freeform playground, garden, progress history, and settings.
-- Viewport-sized coding workspaces: tasks, code, and output sit side by side on desktop. Phones keep code and preview stacked together; instructions and hints open in a dialog. Individual panes scroll, so long code never pushes the preview below the page.
+- Viewport-sized coding workspaces: tasks, code, and output sit side by side on desktop. Phones keep code and preview stacked together; the build guide opens in a dialog. Individual panes scroll, so long code never pushes the preview below the page.
 - Saved lesson drafts, exercise attempts, completion dates, daily intentions, and preferences. Unique completion is recorded only once per lesson.
 - Five distinct course flowers: HTML daisy, CSS lavender, JavaScript sunflower, TypeScript bluebell, and Next.js rose. Each has 12 pixel-art stages. Server-verified exercise checks save the best growth per lesson; only completing every lesson in a course unlocks its full bloom. All five plants grow together in the garden, with an interactive growth-stage guide. Failed attempts and resets never remove earned growth.
 - Tiny5 for the wordmark, headings, and numbers; Pixelify Sans for interface text; Geist Mono for code. Five original pixel-art greenhouse scenes give each language path its own setting.
